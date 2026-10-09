@@ -22,6 +22,16 @@ export interface PackManifest {
   firstInstallOnly: string[];
 }
 
+/** CurseForge serves the same files from both hosts; when one answers 404, the other often has the file. */
+const CURSEFORGE_HOSTS = ['edge.forgecdn.net', 'mediafilez.forgecdn.net'];
+
+/** The manifest URL first, then the same CurseForge file on its other CDN host. */
+export function fileUrls(url: string): string[] {
+  const m = url.match(/^https:\/\/(edge|mediafilez|media)\.forgecdn\.net(\/.*)$/);
+  if (!m) return [url];
+  return [url, ...CURSEFORGE_HOSTS.filter((h) => !url.startsWith(`https://${h}/`)).map((h) => `https://${h}${m[2]}`)];
+}
+
 interface CachedFile {
   size: number;
   mtimeMs: number;
@@ -144,7 +154,7 @@ export async function syncPack(opts: SyncOptions): Promise<SyncResult> {
     const dest = path.join(gameDir, ...f.path.split('/'));
     report(f.path);
     await downloadFile({
-      url: f.url,
+      url: fileUrls(f.url),
       dest,
       hash: { algorithm: 'sha1', value: f.sha1 },
       fetchImpl,

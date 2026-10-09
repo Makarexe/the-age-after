@@ -15,10 +15,12 @@ let server: Server;
 let base: string;
 let handler: (req: IncomingMessage, res: ServerResponse) => void;
 const ranges: (string | undefined)[] = [];
+const paths: string[] = [];
 
 beforeAll(async () => {
   server = createServer((req, res) => {
     ranges.push(req.headers.range);
+    paths.push(req.url!);
     handler(req, res);
   });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
@@ -33,6 +35,7 @@ let dir: string;
 beforeEach(async () => {
   dir = await mkdtemp(path.join(tmpdir(), 'dl-'));
   ranges.length = 0;
+  paths.length = 0;
 });
 afterEach(() => rm(dir, { recursive: true, force: true }));
 
@@ -117,5 +120,44 @@ describe('downloadFile', () => {
     ).rejects.toThrow(/нет данных/);
     expect((await stat(`${dest}.part`)).size).toBeGreaterThan(0);
     expect(net).toBe(0);
+  });
+
+  it('moves on to the next URL when one answers 404, without retrying it', async () => {
+    handler = (req, res) => {
+      if (req.url === '/edge/big.jar') res.writeHead(404).end('not found');
+      else res.writeHead(200, { 'content-length': body.length }).end(body);
+    };
+    const dest = path.join(dir, 'big.jar');
+    await downloadFile({ url: [`${base}/edge/big.jar`, `${base}/media/big.jar`], dest, hash: { algorithm: 'sha1', value: sha1 } });
+    expect((await readFile(dest)).equals(body)).toBe(true);
+    expect(paths).toEqual(['/edge/big.jar', '/media/big.jar']);
+  });
+
+  it('moves on when a mirror serves the wrong file', async () => {
+    handler = (req, res) => {
+      if (req.url === '/bad/big.jar') res.writeHead(200).end('something else');
+      else res.writeHead(200, { 'content-length': body.length }).end(body);
+    };
+    const dest = path.join(dir, 'big.jar');
+    let net = 0;
+    await downloadFile({
+      url: [`${base}/bad/big.jar`, `${base}/good/big.jar`],
+      dest,
+      hash: { algorithm: 'sha1', value: sha1 },
+      onBytes: (d) => (net += d),
+    });
+    expect((await readFile(dest)).equals(body)).toBe(true);
+    expect(net).toBe(body.length);
+  });
+
+  it('when every URL fails, reports what went wrong with the first one', async () => {
+    handler = (req, res) => {
+      if (req.url === '/a/big.jar') res.writeHead(403).end();
+      else res.writeHead(404).end();
+    };
+    await expect(
+      downloadFile({ url: [`${base}/a/big.jar`, `${base}/b/big.jar`], dest: path.join(dir, 'big.jar') }),
+    ).rejects.toThrow('HTTP 403');
+    expect(paths).toEqual(['/a/big.jar', '/b/big.jar']);
   });
 }, 30_000);
