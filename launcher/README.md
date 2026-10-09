@@ -27,18 +27,17 @@ npm run typecheck
 npm test
 ```
 
-Адрес сервера аккаунтов задаётся при сборке переменной `MAIN_VITE_API_ROOT` (например, в `launcher/.env.local`: `MAIN_VITE_API_ROOT=https://<app>.up.railway.app`). Без неё — `https://the-age-after.up.railway.app`. Игрок может переопределить адрес в «Настройки → Дополнительно».
+Адрес сервера аккаунтов по умолчанию — `https://the-age-after-production.up.railway.app` (`src/main/index.ts`). Для другой сборки его можно заменить переменной `MAIN_VITE_API_ROOT` (например, в `launcher/.env.local`). Игрок может переопределить адрес в «Настройки → Дополнительно».
 
 ## Сборка установщика
 
-**Через GitHub Actions (рекомендуется):**
+**Через GitHub Actions (рекомендуется), без командной строки:**
 
-1. Один раз: Settings → Secrets and variables → Actions → Variables → `LAUNCHER_API_ROOT` = адрес бэкенда.
-2. Поднять `version` в `launcher/package.json`, закоммитить, поставить тег `v<версия>` и запушить его:
-   ```bash
-   git tag v0.1.0 && git push origin v0.1.0
-   ```
-3. Workflow `launcher` соберёт `TheAgeAfter-Setup-<версия>.exe` на Windows и опубликует релиз. Уже установленные лаунчеры обновятся сами.
+1. Для новой версии поднять `version` в `launcher/package.json` (в `main`). Для первой — ничего менять не надо, там `0.1.0`.
+2. GitHub → **Actions** → workflow **launcher** → **Run workflow** → ветка `main` → галочка **Опубликовать релиз** → **Run workflow**.
+3. Через ~10 минут в **Releases** появится `v<версия>` с `TheAgeAfter-Setup-<версия>.exe`. Уже установленные лаунчеры обновятся сами.
+
+Можно и тегом: `git tag v0.1.0 && git push origin v0.1.0` — версия в теге должна совпадать с `package.json`. Необязательная переменная репозитория `LAUNCHER_API_ROOT` (Settings → Secrets and variables → Actions → Variables) заменяет адрес сервера аккаунтов при сборке.
 
 **Локально (Windows):**
 

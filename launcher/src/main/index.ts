@@ -14,7 +14,7 @@ import { SessionStore } from './session';
 import { SettingsStore, totalMemoryMb } from './settings';
 import { initUpdater, installUpdate } from './updater';
 
-const DEFAULT_API_ROOT = (import.meta.env.MAIN_VITE_API_ROOT || 'https://the-age-after.up.railway.app').replace(/\/+$/, '');
+const DEFAULT_API_ROOT = (import.meta.env.MAIN_VITE_API_ROOT || 'https://the-age-after-production.up.railway.app').replace(/\/+$/, '');
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

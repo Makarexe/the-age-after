@@ -8,8 +8,8 @@ export function installMock() {
   let state: LauncherState = {
     profile: params.has('login') ? null : { id: 'a74d5f2017e33501824aa3cad0ceeba8', name: 'Makar' },
     settings: { memoryMb: 6144, gameDir: 'C:\\Users\\makar\\AppData\\Roaming\\.theageafter', hideWhilePlaying: false, apiRoot: '' },
-    defaultApiRoot: 'https://the-age-after.up.railway.app',
-    apiRoot: 'https://the-age-after.up.railway.app',
+    defaultApiRoot: 'https://the-age-after-production.up.railway.app',
+    apiRoot: 'https://the-age-after-production.up.railway.app',
     version: '0.1.0',
     totalMemoryMb: 16384,
   };
