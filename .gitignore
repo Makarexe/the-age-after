@@ -1,0 +1,28 @@
+# Node
+node_modules/
+dist/
+out/
+release/
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+
+# Gradle / Java (server-mod)
+.gradle/
+build/
+run/
+run-client/
+run-server/
+*.class
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Pack builder output
+tools/pack/out/
