@@ -5,6 +5,7 @@ import { createMinecraftProcessWatcher, launch } from '@xmcl/core';
 import type { GameState, Progress, ProgressStage, ServerConfig, Settings } from '../shared/types';
 import type { ApiClient } from './api';
 import { sessionExpired, UserError } from './errors';
+import { ensureFiguraServer } from './figura';
 import { ensureAuthlibInjector } from './install/authlib';
 import { ensureJava, ensureMinecraft, ensureNeoForge } from './install/game';
 import { fetchManifest, syncPack } from './install/pack';
@@ -113,6 +114,10 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
     await ensureServerListed(gameDir, config.serverName, config.serverAddress).catch((err) =>
       log.warn('could not update servers.dat', err),
     );
+  }
+  if (config.figuraServer) {
+    // After syncPack: the pack's config.zip may have just reset Figura's settings.
+    await ensureFiguraServer(gameDir, config.figuraServer).catch((err) => log.warn('could not update figura.json', err));
   }
 
   // The game caches its chat-signing key here; a stale or foreign one gets the player kicked

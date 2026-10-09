@@ -12,6 +12,14 @@ describe('loadConfig', () => {
     expect(c.packManifestUrl).toContain('/releases/download/pack-latest/manifest.json');
     expect(c.port).toBe(3000);
     expect(c.serverAddress).toBe('185.9.145.108:32796');
+    expect(c.figuraServer).toBe('');
+  });
+
+  it('keeps only the host of FIGURA_SERVER, as Figura expects', () => {
+    expect(loadConfig({ ...base, FIGURA_SERVER: ' https://figura-production.up.railway.app/ ' }).figuraServer).toBe(
+      'figura-production.up.railway.app',
+    );
+    expect(loadConfig({ ...base, FIGURA_SERVER: 'figura.example.test:8443' }).figuraServer).toBe('figura.example.test:8443');
   });
 
   it('builds SMTP settings', () => {

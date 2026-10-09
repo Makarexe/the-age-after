@@ -227,6 +227,7 @@ describe('full account cycle', () => {
       serverName: 'The Age After',
       serverAddress: 'play.example.test',
       packManifestUrl: 'https://example.test/manifest.json',
+      figuraServer: 'figura.example.test',
       apiRoot: PUBLIC_URL,
     });
   });

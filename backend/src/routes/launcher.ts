@@ -76,6 +76,7 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
       serverName: config.serverName,
       serverAddress: config.serverAddress,
       packManifestUrl: config.packManifestUrl,
+      figuraServer: config.figuraServer,
       apiRoot: config.publicUrl,
     }));
 

@@ -37,6 +37,7 @@ npm run typecheck
 | `MAIL_FROM` | `The Age After <you@yandex.ru>` (адрес должен совпадать с `SMTP_USER`) |
 | `ADMIN_NOTIFY_EMAIL` | куда слать письма о новых заявках |
 | `PACK_MANIFEST_URL` | можно не задавать: по умолчанию Release `pack-latest` этого репозитория |
+| `FIGURA_SERVER` | адрес нашего облака Figura без `https://`, например `figura-production.up.railway.app` (см. [`figura/`](../figura/README.md)); лаунчер прописывает его игрокам в настройки Figura. Пусто — настройку не трогаем |
 
 Без `SMTP_HOST` письма пишутся в лог, а подтверждение почты пропускается.
 

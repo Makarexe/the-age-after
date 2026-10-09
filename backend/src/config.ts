@@ -13,6 +13,8 @@ const envSchema = z.object({
   SIGNING_PRIVATE_KEY: z.string().optional(),
   SERVER_NAME: z.string().default('The Age After'),
   SERVER_ADDRESS: z.string().default('185.9.145.108:32796'),
+  /** Our Figura cloud (Sculptor), host[:port]; the launcher writes it into Figura's config. */
+  FIGURA_SERVER: z.string().optional(),
   PACK_MANIFEST_URL: z
     .string()
     .default('https://github.com/makarexe/the-age-after/releases/download/pack-latest/manifest.json'),
@@ -47,6 +49,8 @@ export interface Config {
   serverName: string;
   serverAddress: string;
   packManifestUrl: string;
+  /** host[:port] of our Figura cloud, or '' to leave Figura's setting alone */
+  figuraServer: string;
   smtp?: SmtpConfig;
   adminNotifyEmail?: string;
   /** Lowercased nicknames that are always active admins (bootstrap without a shell). */
@@ -87,6 +91,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     serverName: e.SERVER_NAME,
     serverAddress: e.SERVER_ADDRESS,
     packManifestUrl: e.PACK_MANIFEST_URL,
+    // Figura wants a bare host: tolerate a pasted https://… URL.
+    figuraServer: (e.FIGURA_SERVER ?? '').trim().replace(/^[a-z]+:\/\//i, '').replace(/\/.*$/, ''),
     smtp,
     adminNotifyEmail: e.ADMIN_NOTIFY_EMAIL || undefined,
     adminUsernames: (e.ADMIN_USERNAMES ?? '')

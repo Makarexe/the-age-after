@@ -40,6 +40,7 @@ export async function createTestApp(opts: { smtp?: boolean; adminUsernames?: str
     serverName: 'The Age After',
     serverAddress: 'play.example.test',
     packManifestUrl: 'https://example.test/manifest.json',
+    figuraServer: 'figura.example.test',
     adminNotifyEmail: 'admin@example.test',
     adminUsernames: opts.adminUsernames ?? [],
     trustProxyHops: 0,
