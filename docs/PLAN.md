@@ -172,7 +172,7 @@ register → verify → approve → authenticate → join → hasJoined (под�
 
 - [x] Исследование, архитектура, решения владельца.
 - [x] `backend/package.json`, `tsconfig.json`, зависимости. npm 11: в `allowScripts` разрешён только `esbuild`.
-- [ ] Этап 1 — backend.
+- [x] Этап 1 — backend: код, 42 теста (vitest + PGlite), smoke-тест на настоящем Postgres 16, Dockerfile, `railway.json`. Инструкция деплоя — `backend/README.md`. Осталось владельцу: деплой на Railway и секреты.
 - [ ] Этап 2 — server-mod.
 - [ ] Этап 3 — tools/pack + Release `pack-latest`.
 - [ ] Этап 4 — launcher + первый Release.
