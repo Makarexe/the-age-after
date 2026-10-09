@@ -26,6 +26,8 @@ export interface ServerConfig {
   serverName: string;
   serverAddress: string;
   packManifestUrl: string;
+  /** host of our Figura cloud; absent or '' on servers without one */
+  figuraServer?: string;
   apiRoot: string;
 }
 

@@ -1,0 +1,30 @@
+## Sculptor (https://github.com/shiroyashik/sculptor): the Figura cloud for The Age After accounts.
+## start.sh replaces the port with Railway's PORT.
+listen = "0.0.0.0:6665"
+
+## Only our accounts: Sculptor asks our session server whether the player has just joined,
+## exactly like Mojang's is asked for official accounts.
+authProviders = [
+    { name = "The Age After", url = "https://the-age-after-production.up.railway.app/sessionserver/session/minecraft/hasJoined" },
+]
+
+## Figura's built-in assets (emojis, docs): downloaded from FiguraMC/Assets on start.
+assetsUpdaterEnabled = true
+
+## Shown in the Figura menu.
+[motd]
+displayServerInfo = false
+sInfoUptime = "Работает: "
+sInfoAuthClients = "Игроков в облаке: "
+sInfoDrawIndent = true
+customText = """
+[
+    { "text": "Облако аватаров " },
+    { "text": "The Age After", "color": "gold" },
+    { "text": "\\nАватары видят все игроки сервера." }
+]
+"""
+
+[limitations]
+maxAvatarSize = 100 # KB, as on the official cloud
+maxAvatars = 10
