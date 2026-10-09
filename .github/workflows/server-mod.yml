@@ -4,8 +4,10 @@ name: server-mod
 # also publishes it as a GitHub Release.
 on:
   push:
-    paths: ['server-mod/**', '.github/workflows/server-mod.yml']
+    # With only `tags` listed, branch pushes would not trigger the workflow at all.
+    branches: ['**']
     tags: ['ageafterauth-v*']
+    paths: ['server-mod/**', '.github/workflows/server-mod.yml']
   pull_request:
     paths: ['server-mod/**', '.github/workflows/server-mod.yml']
   workflow_dispatch:
