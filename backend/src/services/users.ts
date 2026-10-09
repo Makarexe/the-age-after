@@ -48,3 +48,19 @@ export const STATUS_MESSAGES: Record<User['status'], string> = {
   rejected: 'Заявка на регистрацию отклонена.',
   banned: 'Аккаунт заблокирован.',
 };
+
+/** Makes the listed nicknames active admins; returns the names that changed. */
+export async function promoteAdmins(db: DB, lowercasedNames: string[]): Promise<string[]> {
+  if (lowercasedNames.length === 0) return [];
+  const rows = await db
+    .update(users)
+    .set({ isAdmin: true, status: 'active', statusReason: null, approvedAt: sql`coalesce(${users.approvedAt}, now())` })
+    .where(
+      sql`lower(${users.username}) in (${sql.join(
+        lowercasedNames.map((n) => sql`${n}`),
+        sql`, `,
+      )}) and (${users.isAdmin} = false or ${users.status} <> 'active')`,
+    )
+    .returning({ username: users.username });
+  return rows.map((r) => r.username);
+}

@@ -20,7 +20,7 @@ export interface TestApp {
   close: () => Promise<void>;
 }
 
-export async function createTestApp(opts: { smtp?: boolean } = {}): Promise<TestApp> {
+export async function createTestApp(opts: { smtp?: boolean; adminUsernames?: string[] } = {}): Promise<TestApp> {
   const client = new PGlite();
   const db = drizzle(client, { schema }) as unknown as DB;
   await migrate(drizzle(client, { schema }), { migrationsFolder });
@@ -41,6 +41,7 @@ export async function createTestApp(opts: { smtp?: boolean } = {}): Promise<Test
     serverAddress: 'play.example.test',
     packManifestUrl: 'https://example.test/manifest.json',
     adminNotifyEmail: 'admin@example.test',
+    adminUsernames: opts.adminUsernames ?? [],
     trustProxyHops: 0,
     production: false,
   };

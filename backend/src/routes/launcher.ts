@@ -87,6 +87,8 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
         if (await findUserByLogin(db, body.username)) throw conflict('Этот ник уже занят.');
         if (await findUserByLogin(db, body.email)) throw conflict('Эта почта уже используется.');
 
+        // Nicknames from ADMIN_USERNAMES skip email and approval: that's how the first admin appears.
+        const bootstrapAdmin = config.adminUsernames.includes(body.username.toLowerCase());
         let user: User;
         try {
           [user] = (await db
@@ -96,7 +98,9 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
               username: body.username,
               email: body.email,
               passwordHash: await hashPassword(body.password),
-              status: mailer.configured ? 'pending_email' : 'pending_approval',
+              status: bootstrapAdmin ? 'active' : mailer.configured ? 'pending_email' : 'pending_approval',
+              isAdmin: bootstrapAdmin,
+              approvedAt: bootstrapAdmin ? new Date() : null,
             })
             .returning()) as [User];
         } catch (err) {
@@ -107,7 +111,7 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
 
         let mailSent = false;
         if (user.status === 'pending_email') mailSent = await sendVerification(ctx, req.log, user);
-        else notifyAdminAboutApplication(ctx, req.log, user);
+        else if (user.status === 'pending_approval') notifyAdminAboutApplication(ctx, req.log, user);
 
         return reply.status(201).send({ status: user.status, mailSent });
       },

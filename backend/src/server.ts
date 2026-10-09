@@ -5,6 +5,7 @@ import { createLogMailer, createSmtpMailer } from './lib/mailer.js';
 import { createSigner } from './lib/signing.js';
 import { loadOrCreateSigningKey } from './services/secrets.js';
 import { purgeExpired } from './services/tokens.js';
+import { promoteAdmins } from './services/users.js';
 
 const config = loadConfig();
 const logger = { level: process.env.LOG_LEVEL ?? 'info' };
@@ -21,6 +22,8 @@ const app = await buildApp({ config, db, signer, mailer, logger });
 if (storedKey) {
   app.log.info(storedKey.created ? 'Создан ключ подписи, он сохранён в базе' : 'Ключ подписи взят из базы');
 }
+const promoted = await promoteAdmins(db, config.adminUsernames);
+if (promoted.length) app.log.info({ promoted }, 'ADMIN_USERNAMES: назначены администраторы');
 if (!config.smtp) app.log.warn('SMTP не настроен: письма пишутся в лог, подтверждение почты пропускается');
 
 const purge = setInterval(() => purgeExpired(db).catch((err) => app.log.error({ err }, 'purge failed')), 60 * 60 * 1000);
