@@ -91,9 +91,10 @@ export async function readInstance(instanceDir) {
 
 /**
  * Builds the manifest and the list of files to upload to the release.
+ * `keepOverrides`: the `overrides` of the published manifest, to keep configs untouched (--mods-only).
  * @returns {{ manifest: object, uploads: {name: string, data: Buffer}[], serverMods: string[], warnings: string[] }}
  */
-export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, packVersion }) {
+export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, packVersion, keepOverrides }) {
   const warnings = [];
   const instance = await readInstance(instanceDir);
   const minecraft = config.minecraft;
@@ -162,8 +163,9 @@ export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, pa
     assetNames.add(u.name.toLowerCase());
   }
 
-  // Configs and other overrides go into one zip.
+  // Configs and other overrides go into one zip, unless the published one is kept as is (--mods-only).
   const zipEntries = [];
+  if (keepOverrides !== undefined) config = { ...config, overrideDirs: [], overrideFiles: [] };
   for (const dir of config.overrideDirs ?? []) {
     const full = path.join(instanceDir, dir);
     if (!(await exists(full))) continue;
@@ -178,8 +180,8 @@ export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, pa
     if (await exists(full)) zipEntries.push({ name: file, data: await readFile(full), mtime: ZIP_MTIME });
   }
   zipEntries.sort((a, b) => a.name.localeCompare(b.name));
-  let overrides = null;
-  if (zipEntries.length > 0) {
+  let overrides = keepOverrides ?? null;
+  if (keepOverrides === undefined && zipEntries.length > 0) {
     const zip = createZip(zipEntries);
     uploads.push({ name: 'config.zip', data: zip });
     overrides = { url: `${releaseBaseUrl}/config.zip`, sha1: sha1(zip), size: zip.length, files: zipEntries.length };

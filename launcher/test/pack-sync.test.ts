@@ -23,8 +23,9 @@ const fakeFetch = (async (input: string | URL | Request) => {
   return new Response(new Uint8Array(body), { status: 200 });
 }) as typeof fetch;
 
-async function publish(packVersion: string): Promise<PackManifest> {
+async function publish(packVersion: string, keepOverrides?: PackManifest['overrides']): Promise<PackManifest> {
   const { manifest, uploads } = await buildPack({
+    keepOverrides,
     instanceDir: instance,
     config: {
       minecraft: '1.21.1',
@@ -115,6 +116,40 @@ describe('syncPack against tools/pack output', () => {
     expect(await readFile(path.join(gameDir, 'config', 'a.toml'), 'utf8')).toBe('a=2');
     expect(await readFile(path.join(gameDir, 'options.txt'), 'utf8')).toBe('player options');
     expect((await stat(path.join(gameDir, 'mods', 'mod-data'))).isDirectory()).toBe(true);
+  });
+
+  it('mods-only update: new mod arrives, configs and the player\'s config edits stay', async () => {
+    const first = await publish('2026.10.09-1');
+    await syncPack({ gameDir, manifest: first, fetchImpl: fakeFetch });
+    await writeFile(path.join(gameDir, 'config', 'a.toml'), 'player edited');
+
+    await writeFile(path.join(instance, 'mods', 'new-mod.jar'), 'brand new');
+    await writeFile(path.join(instance, 'config', 'a.toml'), 'owner changed it but published mods only');
+    const second = await publish('2026.10.09-2', first.overrides);
+    expect(second.overrides).toEqual(first.overrides);
+
+    requests = [];
+    const result = await syncPack({ gameDir, manifest: second, fetchImpl: fakeFetch });
+    expect(result).toEqual({ downloaded: ['mods/new-mod.jar'], removed: [], overridesApplied: false });
+    expect(requests.some((u) => u.endsWith('/config.zip'))).toBe(false);
+    expect(await readFile(path.join(gameDir, 'config', 'a.toml'), 'utf8')).toBe('player edited');
+  });
+
+  it('a new pack version with an identical config.zip does not reset configs', async () => {
+    await syncPack({ gameDir, manifest: await publish('2026.10.09-1'), fetchImpl: fakeFetch });
+    await writeFile(path.join(gameDir, 'config', 'a.toml'), 'player edited');
+    const result = await syncPack({ gameDir, manifest: await publish('2026.10.09-2'), fetchImpl: fakeFetch });
+    expect(result.overridesApplied).toBe(false);
+    expect(await readFile(path.join(gameDir, 'config', 'a.toml'), 'utf8')).toBe('player edited');
+  });
+
+  it('"Проверить файлы" puts the pack configs back', async () => {
+    const manifest = await publish('2026.10.09-1');
+    await syncPack({ gameDir, manifest, fetchImpl: fakeFetch });
+    await writeFile(path.join(gameDir, 'config', 'a.toml'), 'player edited');
+    const result = await syncPack({ gameDir, manifest, fetchImpl: fakeFetch, forceOverrides: true });
+    expect(result.overridesApplied).toBe(true);
+    expect(await readFile(path.join(gameDir, 'config', 'a.toml'), 'utf8')).toBe('a=1');
   });
 
   it('a corrupted local mod is re-downloaded', async () => {

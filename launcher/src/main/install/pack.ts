@@ -110,7 +110,7 @@ export interface SyncOptions {
   manifest: PackManifest;
   onProgress?: SyncProgress;
   fetchImpl?: Fetch;
-  /** Re-apply configs even if packVersion didn't change ("переустановить"). */
+  /** Re-apply configs even if config.zip didn't change ("Проверить файлы"). */
   forceOverrides?: boolean;
 }
 
@@ -185,10 +185,11 @@ export async function syncPack(opts: SyncOptions): Promise<SyncResult> {
     }
   }
 
-  // 4. Configs: re-applied when the pack version changes.
+  // 4. Configs: re-applied only when config.zip itself changed, so a mods-only update keeps the
+  // player's config edits. "Проверить файлы" forces it.
   let overridesApplied = false;
   const o = manifest.overrides;
-  if (o && (opts.forceOverrides || state.packVersion !== manifest.packVersion || state.overridesSha1 !== o.sha1)) {
+  if (o && (opts.forceOverrides || state.overridesSha1 !== o.sha1)) {
     onProgress?.('config', null, 'config.zip');
     const tmp = path.join(gameDir, '.launcher-tmp', 'config.zip');
     await downloadFile({ url: o.url, dest: tmp, hash: { algorithm: 'sha1', value: o.sha1 }, fetchImpl }).catch((err) => {

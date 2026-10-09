@@ -19,6 +19,7 @@ const { values: args } = parseArgs({
     out: { type: 'string', default: path.join(here, 'out') },
     version: { type: 'string' },
     upload: { type: 'boolean', default: false },
+    'mods-only': { type: 'boolean', default: false },
     'check-urls': { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
@@ -26,10 +27,11 @@ const { values: args } = parseArgs({
 
 if (args.help || !(args.instance ?? process.env.PACK_INSTANCE)) {
   console.log(`Использование:
-  node build-pack.mjs --instance <папка инстанса CurseForge> [--upload] [--check-urls] [--version 2026.01.31-1]
+  node build-pack.mjs --instance <папка инстанса CurseForge> [--upload] [--mods-only] [--check-urls] [--version 2026.01.31-1]
 
   --instance    папка с minecraftinstance.json (или переменная PACK_INSTANCE)
   --upload      загрузить в GitHub Release через gh (нужен gh auth login)
+  --mods-only   обновить только моды: конфиги (config.zip) остаются как в опубликованной сборке
   --check-urls  проверить, что все ссылки CurseForge отвечают
   --out         куда сложить файлы (по умолчанию tools/pack/out)`);
   process.exit(args.help ? 0 : 1);
@@ -48,6 +50,11 @@ try {
   // offline or no release yet
 }
 
+if (args['mods-only'] && !previous) {
+  console.error('--mods-only: не удалось получить опубликованную сборку. Опубликуйте сборку целиком (без --mods-only).');
+  process.exit(1);
+}
+
 const packVersion = args.version ?? nextPackVersion(previous?.packVersion);
 const { manifest, uploads, serverMods, warnings } = await buildPack({
   instanceDir,
@@ -55,6 +62,7 @@ const { manifest, uploads, serverMods, warnings } = await buildPack({
   sides,
   releaseBaseUrl,
   packVersion,
+  keepOverrides: args['mods-only'] ? (previous.overrides ?? null) : undefined,
 });
 
 if (args['check-urls']) {
@@ -89,7 +97,8 @@ const mb = (n) => (n / 1024 / 1024).toFixed(1);
 const total = manifest.files.reduce((n, f) => n + f.size, 0) + (manifest.overrides?.size ?? 0);
 console.log(`\nСборка ${packVersion}: ${manifest.files.length} файлов, ${mb(total)} МБ всего.`);
 console.log(`В Release: ${uploads.length} файлов (${mb(uploads.reduce((n, u) => n + u.data.length, 0))} МБ).`);
-if (manifest.overrides) console.log(`config.zip: ${manifest.overrides.files} файлов.`);
+if (args['mods-only']) console.log('Конфиги не трогаем: остаётся опубликованный config.zip.');
+else if (manifest.overrides) console.log(`config.zip: ${manifest.overrides.files} файлов.`);
 
 const diff = diffManifests(previous, manifest);
 if (previous) {

@@ -142,7 +142,7 @@ register → verify → approve → authenticate → join → hasJoined (под�
   - настройки: ОЗУ, папка, «открыть папку», «переустановить»;
   - скин.
 - **Установка** (`@xmcl/installer`): Java 21 из java-runtime Mojang, ванилла 1.21.1, `installNeoForged` 21.1.256, authlib-injector (последний релиз, проверка sha256).
-- **Синхронизация:** 8 потоков, проверка sha1; лишнее из `managedDirs` удаляется; конфиги перезаписываются при смене `packVersion`, кроме `firstInstallOnly`. Если файл не скачался, лаунчер говорит, какой именно.
+- **Синхронизация:** 8 потоков, проверка sha1; лишнее из `managedDirs` удаляется; конфиги перезаписываются, только когда изменился `config.zip` (публикация с `--mods-only` его не трогает), кроме `firstInstallOnly`. Если файл не скачался, лаунчер говорит, какой именно.
 - **Запуск** (`@xmcl/core`):
   - `-javaagent:authlib-injector.jar=<apiRoot>`;
   - `--username/--uuid/--accessToken/--userType mojang`;
