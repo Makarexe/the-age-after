@@ -78,6 +78,17 @@ jobs:
           name: installer
           path: launcher/release/*.exe
           if-no-files-found: error
+      # electron-builder uploads the exe and the blockmap in parallel and both try to create the
+      # release: one wins, the other fails. Creating it first (with the tag) avoids the race.
+      - name: Create the GitHub release
+        if: env.PUBLISH == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v$(node -p "require('./package.json').version")"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" \
+            --title "The Age After $tag" --notes "Лаунчер The Age After $tag. Скачайте TheAgeAfter-Setup-*.exe ниже."
       - name: Build and publish
         if: env.PUBLISH == 'true'
         env:
