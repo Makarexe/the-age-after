@@ -148,6 +148,24 @@ describe('buildPack', () => {
     });
   });
 
+  it('--mods-only keeps the published config.zip', async () => {
+    const published = { url: `${RELEASE}/config.zip`, sha1: 'a'.repeat(40), size: 10, files: 3 };
+    const modsOnly = await buildPack({
+      instanceDir: dir,
+      config,
+      sides: { serverOnly: ['ageafterauth-*.jar'] },
+      releaseBaseUrl: RELEASE,
+      packVersion: '2026.10.09-2',
+      keepOverrides: published,
+    });
+    assert.deepEqual(modsOnly.manifest.overrides, published);
+    assert.ok(!modsOnly.uploads.some((u) => u.name === 'config.zip'));
+    assert.deepEqual(
+      modsOnly.manifest.files.map((f) => f.path),
+      result.manifest.files.map((f) => f.path),
+    );
+  });
+
   it('is deterministic', async () => {
     const again = await buildPack({ instanceDir: dir, config, sides: { serverOnly: ['ageafterauth-*.jar'] }, releaseBaseUrl: RELEASE, packVersion: 'x' });
     assert.equal(again.manifest.overrides.sha1, result.manifest.overrides.sha1);
