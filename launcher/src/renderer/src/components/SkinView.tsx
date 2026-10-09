@@ -42,8 +42,8 @@ export function SkinView({ src, slim, scale = 10, headOnly = false }: { src: str
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!src) return;
+    // No crossOrigin: the texture server sends no CORS headers, and drawing (not reading) pixels is fine.
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const legacy = img.height === 32;

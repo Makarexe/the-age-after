@@ -12,7 +12,7 @@ Node 22+/24, TypeScript, Fastify 5, Drizzle ORM, PostgreSQL. Отдаёт:
 ```bash
 npm ci
 cp .env.example .env      # заполнить DATABASE_URL и PUBLIC_URL
-npm run dev               # без SIGNING_PRIVATE_KEY сгенерирует временный ключ
+npm run dev               # без SIGNING_PRIVATE_KEY создаст ключ и сохранит его в базе
 npm test                  # vitest + PGlite, Postgres не нужен
 npm run typecheck
 ```
@@ -26,7 +26,7 @@ npm run typecheck
 1. New Project → Deploy from GitHub repo → этот репозиторий. В настройках сервиса: **Root Directory** = `backend`. Сборка по `Dockerfile`, healthcheck `/health` (см. `railway.json`).
 2. Add → Database → PostgreSQL. В переменных сервиса: `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`.
 3. Settings → Networking → Generate Domain. Этот адрес — `PUBLIC_URL` (с `https://`, без `/` в конце).
-4. Ключ подписи: локально `npm run gen-key > key.pem`, содержимое файла целиком — в переменную `SIGNING_PRIVATE_KEY`. Генерируется **один раз**: при смене ключа игроки не смогут зайти, пока не перезапустится MC-сервер. `key.pem` не коммитить.
+4. Ключ подписи: ничего делать не нужно. При первом запуске сервер сам создаст ключ RSA-4096 и сохранит его в базе (таблица `app_secrets`); при следующих запусках берёт его оттуда. Не удаляйте базу: при смене ключа игроки не смогут зайти, пока не перезапустится MC-сервер. Свой ключ можно задать переменной `SIGNING_PRIVATE_KEY` (PEM, `npm run gen-key`) — она важнее ключа из базы.
 5. Остальные переменные:
 
 | Переменная | Пример |

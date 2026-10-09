@@ -67,6 +67,7 @@ export async function fetchManifest(url: string, fetchImpl: Fetch = fetch): Prom
   } catch {
     throw new UserError('Не удалось скачать список модов сборки. Проверьте интернет.');
   }
+  if (res.status === 404) throw new UserError('Сборка модов ещё не опубликована. Напишите администратору.');
   if (!res.ok) throw new UserError(`Не удалось скачать список модов сборки (HTTP ${res.status}).`);
   return validateManifest(await res.json());
 }

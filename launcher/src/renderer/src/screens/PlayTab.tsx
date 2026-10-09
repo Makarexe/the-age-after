@@ -88,6 +88,7 @@ export function PlayTab({ onError }: { onError: (err: unknown) => void }) {
 }
 
 function ServerLine({ status, address }: { status: ServerStatus | null; address?: string }) {
+  if (address === '') return <div className="server-line muted">Адрес сервера пока не задан администратором</div>;
   if (!status) return <div className="server-line muted">Проверяем сервер…</div>;
   if (!status.online) return <div className="server-line"><span className="dot dot-off" />Сервер недоступен</div>;
   return (

@@ -119,3 +119,10 @@ export const auditLog = pgTable(
 export type User = typeof users.$inferSelect;
 export type NewsItem = typeof news.$inferSelect;
 
+
+/** Server-generated secrets that must survive restarts (e.g. the texture signing key). */
+export const appSecrets = pgTable('app_secrets', {
+  name: text('name').primaryKey(),
+  value: text('value').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

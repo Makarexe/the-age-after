@@ -159,3 +159,11 @@ describe('manifest validation', () => {
     ).toThrow(/неверную запись/);
   });
 });
+
+describe('fetchManifest', () => {
+  it('explains a missing pack', async () => {
+    const { fetchManifest } = await import('../src/main/install/pack');
+    const notFound = (async () => new Response('nope', { status: 404 })) as typeof fetch;
+    await expect(fetchManifest('https://example.test/manifest.json', notFound)).rejects.toThrow(/ещё не опубликована/);
+  });
+});
