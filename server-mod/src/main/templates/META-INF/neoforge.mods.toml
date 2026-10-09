@@ -8,19 +8,23 @@ version="${mod_version}"
 displayName="${mod_name}"
 authors="${mod_authors}"
 description='''${mod_description}'''
-# Server-only mod: clients without it can join and see the server as compatible.
+# Clients without it can still join and see the server as compatible.
 displayTest="IGNORE_SERVER_VERSION"
+
+# Client side: lets Figura show avatars of our accounts (see FiguraUuids).
+[[mixins]]
+config="${mod_id}.mixins.json"
 
 [[dependencies.${mod_id}]]
     modId="neoforge"
     type="required"
     versionRange="${neo_version_range}"
     ordering="NONE"
-    side="SERVER"
+    side="BOTH"
 
 [[dependencies.${mod_id}]]
     modId="minecraft"
     type="required"
     versionRange="${minecraft_version_range}"
     ordering="NONE"
-    side="SERVER"
+    side="BOTH"
