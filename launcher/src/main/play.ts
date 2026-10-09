@@ -1,5 +1,6 @@
 import type { ChildProcess } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
+import path from 'node:path';
 import { createMinecraftProcessWatcher, launch } from '@xmcl/core';
 import type { GameState, Progress, ProgressStage, ServerConfig, Settings } from '../shared/types';
 import type { ApiClient } from './api';
@@ -113,6 +114,12 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
       log.warn('could not update servers.dat', err),
     );
   }
+
+  // The game caches its chat-signing key here; a stale or foreign one gets the player kicked
+  // ("Invalid signature for profile public key"). Without it the game asks our server for a new one.
+  await rm(path.join(gameDir, 'profilekeys'), { recursive: true, force: true }).catch((err) =>
+    log.warn('could not clear profilekeys', err),
+  );
 
   step('launch', 'Запускаем игру')(null);
   const prefetched = await api.metadataBase64();

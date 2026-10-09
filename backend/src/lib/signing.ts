@@ -7,6 +7,8 @@ export interface Signer {
   publicKeyDerBase64: string;
   /** SHA1withRSA signature of a property value, base64. */
   sign(value: string): string;
+  /** SHA1withRSA signature of raw bytes, base64. */
+  signBytes(data: Buffer): string;
 }
 
 export function generatePrivateKeyPem(modulusLength = 4096): string {
@@ -23,6 +25,9 @@ export function createSigner(privateKeyPem: string): Signer {
     publicKeyDerBase64: publicKey.export({ type: 'spki', format: 'der' }).toString('base64'),
     sign(value: string) {
       return createSign('RSA-SHA1').update(value, 'utf8').sign(privateKey, 'base64');
+    },
+    signBytes(data: Buffer) {
+      return createSign('RSA-SHA1').update(data).sign(privateKey, 'base64');
     },
   };
 }
