@@ -31,7 +31,7 @@ npm run typecheck
 
 | Переменная | Пример |
 |---|---|
-| `SERVER_ADDRESS` | `play.example.ru:25565` |
+| `SERVER_ADDRESS` | можно не задавать: по умолчанию `185.9.145.108:32796` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | `smtp.yandex.ru`, `465`, `true` (Gmail: `smtp.gmail.com`, `465`, `true`) |
 | `SMTP_USER`, `SMTP_PASS` | почта и **пароль приложения** (не основной пароль) |
 | `MAIL_FROM` | `The Age After <you@yandex.ru>` (адрес должен совпадать с `SMTP_USER`) |

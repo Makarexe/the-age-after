@@ -3,7 +3,6 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { MinecraftFolder, Version } from '@xmcl/core';
 import {
-  fetchJavaRuntimeManifest,
   getVersionList,
   installNeoForgedTask,
   installJavaRuntimeTask,
@@ -13,6 +12,7 @@ import type { Task } from '@xmcl/task';
 import { MINECRAFT_VERSION, NEOFORGE_VERSION } from '../../shared/constants';
 import { UserError } from '../errors';
 import { log } from '../log';
+import { fetchJavaManifest } from './java-manifest';
 
 export type StepProgress = (fraction: number | null, detail?: string) => void;
 
@@ -105,7 +105,7 @@ export async function ensureJava(gameDir: string, component: string, onProgress:
   if ((await hasMarker(gameDir, `java-${component}`, 'ok')) && existsSync(paths.javaw)) return paths;
   onProgress(null, 'Список файлов Java');
   try {
-    const manifest = await fetchJavaRuntimeManifest({ target: component });
+    const manifest = await fetchJavaManifest(component);
     await runTask(installJavaRuntimeTask({ destination: path.dirname(path.dirname(paths.java)), manifest }), onProgress);
   } catch (err) {
     log.error('java install failed', err);

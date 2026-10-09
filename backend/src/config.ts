@@ -12,7 +12,7 @@ const envSchema = z.object({
   PUBLIC_URL: z.url(),
   SIGNING_PRIVATE_KEY: z.string().optional(),
   SERVER_NAME: z.string().default('The Age After'),
-  SERVER_ADDRESS: z.string().default(''),
+  SERVER_ADDRESS: z.string().default('185.9.145.108:32796'),
   PACK_MANIFEST_URL: z
     .string()
     .default('https://github.com/makarexe/the-age-after/releases/download/pack-latest/manifest.json'),

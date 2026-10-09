@@ -8,6 +8,7 @@ import { ensureAuthlibInjector } from './install/authlib';
 import { ensureJava, ensureMinecraft, ensureNeoForge } from './install/game';
 import { fetchManifest, syncPack } from './install/pack';
 import { log } from './log';
+import { ensureServerListed } from './servers-dat';
 import type { SessionStore } from './session';
 
 // G1 settings from the vanilla launcher, without -Xmx (that comes from the memory setting).
@@ -105,6 +106,13 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
   log.info(
     `pack ${manifest.packVersion}: downloaded ${result.downloaded.length}, removed ${result.removed.length}, configs ${result.overridesApplied}`,
   );
+
+  if (config.serverAddress) {
+    // Our server first in "Multiplayer", next to whatever the player added themselves.
+    await ensureServerListed(gameDir, config.serverName, config.serverAddress).catch((err) =>
+      log.warn('could not update servers.dat', err),
+    );
+  }
 
   step('launch', 'Запускаем игру')(null);
   const prefetched = await api.metadataBase64();
