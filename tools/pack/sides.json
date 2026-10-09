@@ -1,0 +1,5 @@
+{
+  "$comment": "Jar file name patterns (* = anything). serverOnly never goes to players; clientOnly is left out of server-mods.txt.",
+  "serverOnly": ["ageafterauth-*.jar"],
+  "clientOnly": []
+}
