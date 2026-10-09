@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { isSafeRelativePath, syncPack, validateManifest, type PackManifest } from '../src/main/install/pack';
+import { fileUrls, isSafeRelativePath, syncPack, validateManifest, type PackManifest } from '../src/main/install/pack';
 // The real pack builder: the launcher must understand exactly what tools/pack produces.
 // @ts-expect-error plain JS module without types
 import { buildPack, sha1 } from '../../tools/pack/lib/pack.mjs';
@@ -166,12 +166,48 @@ describe('syncPack against tools/pack output', () => {
     await expect(syncPack({ gameDir, manifest, fetchImpl: fakeFetch })).rejects.toThrow(/mods\/cf\.jar \(HTTP 404\)/);
   }, 60_000);
 
+  it('falls back to the other CurseForge host when the CDN answers 404', async () => {
+    const manifest = await publish('2026.10.09-1');
+    served.set('https://mediafilez.forgecdn.net/files/1/2/cf.jar', served.get('https://edge.forgecdn.net/files/1/2/cf.jar')!);
+    served.delete('https://edge.forgecdn.net/files/1/2/cf.jar');
+    const result = await syncPack({ gameDir, manifest, fetchImpl: fakeFetch });
+    expect(result.downloaded.sort()).toEqual(['mods/cf.jar', 'mods/own.jar']);
+    expect(requests).toContain('https://mediafilez.forgecdn.net/files/1/2/cf.jar');
+  });
+
   it('rejects a file whose sha1 does not match', async () => {
     const manifest = await publish('2026.10.09-1');
     served.set('https://edge.forgecdn.net/files/1/2/cf.jar', Buffer.from('tampered'));
     await expect(syncPack({ gameDir, manifest, fetchImpl: fakeFetch })).rejects.toThrow(/контрольная сумма/);
     await expect(stat(path.join(gameDir, 'mods', 'cf.jar'))).rejects.toThrow();
   }, 60_000);
+});
+
+describe('file URLs', () => {
+  it('adds the other CurseForge host after the original', () => {
+    const file = '/files/8756/580/sodium-neoforge-0.8.13%2bmc1.21.1.jar';
+    expect(fileUrls(`https://edge.forgecdn.net${file}`)).toEqual([
+      `https://edge.forgecdn.net${file}`,
+      `https://mediafilez.forgecdn.net${file}`,
+    ]);
+    expect(fileUrls(`https://mediafilez.forgecdn.net${file}`)).toEqual([
+      `https://mediafilez.forgecdn.net${file}`,
+      `https://edge.forgecdn.net${file}`,
+    ]);
+    expect(fileUrls(`https://media.forgecdn.net${file}`)).toEqual([
+      `https://media.forgecdn.net${file}`,
+      `https://edge.forgecdn.net${file}`,
+      `https://mediafilez.forgecdn.net${file}`,
+    ]);
+  });
+
+  it('leaves other URLs alone', () => {
+    const own = `${RELEASE}/own.jar`;
+    expect(fileUrls(own)).toEqual([own]);
+    expect(fileUrls('https://edge.forgecdn.net.evil.example/files/1/2/x.jar')).toEqual([
+      'https://edge.forgecdn.net.evil.example/files/1/2/x.jar',
+    ]);
+  });
 });
 
 describe('manifest validation', () => {
