@@ -63,7 +63,7 @@ API по спецификации authlib-injector (Yggdrasil): https://github.c
 - `GET /minecraftservices/player/attributes`, `/privacy/blocklist`, `/minecraft/profile`. Подпись чата не поддерживаем: на сервере `enforce-secure-profile=false`, `/player/certificates` отвечает 404.
 - `GET /textures/{sha256}` — PNG скина.
 
-Профиль: `{id (uuid без дефисов), name, properties:[{name:"textures", value:base64(json), signature?}, {name:"uploadableTextures", value:"skin"}]}`. JSON textures: `{timestamp, profileId, profileName, textures:{SKIN:{url, metadata?:{model:"slim"}}}}`. Подпись: **SHA1withRSA**, ключ RSA-4096 из env `SIGNING_PRIVATE_KEY` (PEM).
+Профиль: `{id (uuid без дефисов), name, properties:[{name:"textures", value:base64(json), signature?}, {name:"uploadableTextures", value:"skin"}]}`. JSON textures: `{timestamp, profileId, profileName, textures:{SKIN:{url, metadata?:{model:"slim"}}}}`. Подпись: **SHA1withRSA**, ключ RSA-4096 из env `SIGNING_PRIVATE_KEY` (PEM), а если его нет — созданный при первом запуске и сохранённый в базе (`app_secrets`).
 
 **API лаунчера** (`/launcher/*`, JSON, Bearer = accessToken):
 
@@ -96,7 +96,7 @@ API по спецификации authlib-injector (Yggdrasil): https://github.c
 
 **Env:** `PORT`, `DATABASE_URL`, `PUBLIC_URL`, `SIGNING_PRIVATE_KEY`, `SERVER_ADDRESS`, `PACK_MANIFEST_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `ADMIN_NOTIFY_EMAIL`.
 
-Ключ для разработки генерирует `npm run gen-key`. Для прода ключ генерируется один раз и вставляется в Railway.
+Ключ можно сгенерировать `npm run gen-key` и задать в Railway; без него сервер создаёт ключ сам и хранит в базе.
 
 **Деплой (делает владелец):** Railway → New Project → Deploy from GitHub → root `backend/` (Dockerfile) → Add PostgreSQL → переменные. Миграции Drizzle применяются при старте.
 
