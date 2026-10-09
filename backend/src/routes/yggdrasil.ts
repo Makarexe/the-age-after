@@ -8,6 +8,7 @@ import { forbidden, INVALID_CREDENTIALS, INVALID_TOKEN, notFound } from '../lib/
 import { parse } from '../lib/validate.js';
 import { verifyPassword } from '../services/passwords.js';
 import { fullProfile, shortProfile } from '../services/profile.js';
+import { issueProfileKeyPair } from '../services/profile-keys.js';
 import {
   findSession,
   issueAccessToken,
@@ -80,6 +81,7 @@ export function yggdrasilRoutes(ctx: AppContext): FastifyPluginAsync {
           links: { homepage: config.publicUrl, register: config.publicUrl },
           'feature.non_email_login': true,
           'feature.no_mojang_namespace': true,
+          'feature.enable_profile_key': true,
         },
         skinDomains: [host],
         signaturePublickey: signer.publicKeyPem,
@@ -250,9 +252,10 @@ export function yggdrasilRoutes(ctx: AppContext): FastifyPluginAsync {
       return { ...shortProfile(user), skins: [], capes: [] };
     });
 
-    // Chat signing is off on the server (enforce-secure-profile=false): no player certificates.
-    app.post('/minecraftservices/player/certificates', async (_req, reply) => {
-      return reply.status(404).send({ error: 'NotFound', errorMessage: 'Not supported.' });
+    // Chat-signing keys signed by us: the MC server kicks players whose profile key it can't verify.
+    app.post('/minecraftservices/player/certificates', { config: LOOSE_LIMIT }, async (req) => {
+      const { user } = await bearerSession(req.headers.authorization);
+      return issueProfileKeyPair(user.id, signer);
     });
   };
 }

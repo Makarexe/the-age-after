@@ -60,7 +60,8 @@ API по спецификации authlib-injector (Yggdrasil): https://github.c
 - `GET /sessionserver/session/minecraft/profile/{uuid}?unsigned=` → 200 или 204.
 - `POST /api/profiles/minecraft` (массово ник → `{id,name}`), `GET /api/users/profiles/minecraft/{name}`.
 - `GET /minecraftservices/publickeys` → `{profilePropertyKeys:[{publicKey:<base64 DER SPKI>}], playerCertificateKeys:[...]}`.
-- `GET /minecraftservices/player/attributes`, `/privacy/blocklist`, `/minecraft/profile`. Подпись чата не поддерживаем: на сервере `enforce-secure-profile=false`, `/player/certificates` отвечает 404.
+- `GET /minecraftservices/player/attributes`, `/privacy/blocklist`, `/minecraft/profile`.
+- `POST /minecraftservices/player/certificates` — ключи подписи чата, подписанные нашим ключом (`feature.enable_profile_key`). Без них сервер выкидывал игроков с «Invalid signature for profile public key», даже при `enforce-secure-profile=false`.
 - `GET /textures/{sha256}` — PNG скина.
 
 Профиль: `{id (uuid без дефисов), name, properties:[{name:"textures", value:base64(json), signature?}, {name:"uploadableTextures", value:"skin"}]}`. JSON textures: `{timestamp, profileId, profileName, textures:{SKIN:{url, metadata?:{model:"slim"}}}}`. Подпись: **SHA1withRSA**, ключ RSA-4096 из env `SIGNING_PRIVATE_KEY` (PEM), а если его нет — созданный при первом запуске и сохранённый в базе (`app_secrets`).
