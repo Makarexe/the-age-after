@@ -15,10 +15,23 @@ export function initLog(dir: string): string {
   return file;
 }
 
+function formatArg(a: unknown): string {
+  if (a instanceof AggregateError) {
+    // Download failures: the inner errors say which file and why.
+    const inner = a.errors.slice(0, 5).map((e) => {
+      const url = (e as { url?: unknown })?.url;
+      return `  - ${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}${url ? ` (${String(url)})` : ''}`;
+    });
+    return [`AggregateError: ${a.errors.length} errors`, ...inner, a.errors.length > 5 ? `  ... and ${a.errors.length - 5} more` : '']
+      .filter(Boolean)
+      .join('\n');
+  }
+  if (a instanceof Error) return a.stack ?? a.message;
+  return typeof a === 'string' ? a : JSON.stringify(a);
+}
+
 function write(level: string, args: unknown[]) {
-  const text = args
-    .map((a) => (a instanceof Error ? (a.stack ?? a.message) : typeof a === 'string' ? a : JSON.stringify(a)))
-    .join(' ');
+  const text = args.map(formatArg).join(' ');
   const line = `${new Date().toISOString()} ${level} ${text}\n`;
   if (level === 'ERROR') console.error(line.trimEnd());
   else console.log(line.trimEnd());

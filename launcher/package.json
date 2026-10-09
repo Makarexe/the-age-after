@@ -1,7 +1,7 @@
 {
   "name": "the-age-after-launcher",
   "productName": "The Age After",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "Лаунчер модового сервера The Age After",
   "author": "Makarexe",
@@ -22,7 +22,8 @@
     "@xmcl/core": "2.15.1",
     "@xmcl/installer": "6.1.2",
     "@xmcl/unzip": "2.1.2",
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "undici": "7.2.3"
   },
   "devDependencies": {
     "@types/node": "^24.9.0",
