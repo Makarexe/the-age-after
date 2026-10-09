@@ -34,7 +34,8 @@ const registerBody = z.object({ username: usernameSchema, email: emailSchema, pa
 const resetBody = z.object({ token: z.string().min(1).max(128), password: passwordSchema });
 const changePasswordBody = z.object({ oldPassword: z.string().min(1).max(256), newPassword: passwordSchema });
 const skinBody = z.object({
-  png: z.string().min(1, 'Нет файла скина.').max(MAX_SKIN_BYTES * 2),
+  /** Without png only the model of the current skin changes. */
+  png: z.string().min(1, 'Нет файла скина.').max(MAX_SKIN_BYTES * 2).optional(),
   model: z.enum(['classic', 'slim']).default('classic'),
 });
 
@@ -174,6 +175,11 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
     app.post('/skin', async (req) => {
       const session = await requireSession(req);
       const body = parse(skinBody, req.body);
+      if (body.png === undefined) {
+        if (!session.user.skinSha256) throw badRequest('Сначала загрузите скин.');
+        const [user] = await db.update(users).set({ skinModel: body.model }).where(eq(users.id, session.user.id)).returning();
+        return meResponse(user!, config.publicUrl);
+      }
       const png = Buffer.from(body.png.replace(/^data:image\/png;base64,/, ''), 'base64');
       if (png.length > MAX_SKIN_BYTES) throw badRequest('Файл скина слишком большой.');
       const size = readPngSize(png);

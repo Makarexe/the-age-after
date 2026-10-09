@@ -63,7 +63,7 @@ Yggdrasil — по [спецификации authlib-injector](https://github.co
 | POST | `/launcher/reset-password` | `{token, password}` → 204 |
 | GET | `/launcher/me` | профиль, статус, скин |
 | POST | `/launcher/change-password` | `{oldPassword, newPassword}` → 204 |
-| POST | `/launcher/skin` | `{png: base64, model: classic\|slim}` → профиль |
+| POST | `/launcher/skin` | `{png: base64, model: classic\|slim}` → профиль; без `png` меняется только модель |
 | DELETE | `/launcher/skin` | → профиль |
 | GET | `/launcher/news` | `[{id, title, body, createdAt}]` |
 

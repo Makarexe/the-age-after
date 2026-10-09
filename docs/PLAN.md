@@ -175,5 +175,5 @@ register → verify → approve → authenticate → join → hasJoined (под�
 - [x] Этап 1 — backend: код, 42 теста (vitest + PGlite), smoke-тест на настоящем Postgres 16, Dockerfile, `railway.json`. Инструкция деплоя — `backend/README.md`. Осталось владельцу: деплой на Railway и секреты.
 - [x] Этап 2 — server-mod: код и JUnit-тесты логики (проверены в облаке против заглушек API). Jar собирает GitHub Actions (`server-mod.yml`): maven.neoforged.net из облачной песочницы недоступен. Осталось: smoke-тест `runServer` локально.
 - [x] Этап 3 — `tools/pack/build-pack.mjs` + тесты. Осталось владельцу: запустить на своём инстансе с `--upload` (создаст Release `pack-latest`).
-- [ ] Этап 4 — launcher + первый Release.
+- [x] Этап 4 — launcher: код, 19 тестов (в т.ч. сквозной с `tools/pack`), сборка electron-vite, проверка интерфейса в браузере. Установщик собирает GitHub Actions на Windows по тегу `v*` (`launcher.yml`). Осталось владельцу: переменная `LAUNCHER_API_ROOT`, тег `v0.1.0`, проверка на Windows.
 - [ ] Переключение сервера.

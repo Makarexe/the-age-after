@@ -213,8 +213,13 @@ describe('me, skins, news', () => {
     });
     expect(legacy.json().skin.model).toBe('classic');
 
+    const modelOnly = await t.app.inject({ method: 'POST', url: '/launcher/skin', headers: auth(token), payload: { model: 'slim' } });
+    expect(modelOnly.json().skin).toEqual({ url: legacy.json().skin.url, model: 'slim' });
+
     const removed = await t.app.inject({ method: 'DELETE', url: '/launcher/skin', headers: auth(token) });
     expect(removed.json().skin).toBeNull();
+    const noSkin = await t.app.inject({ method: 'POST', url: '/launcher/skin', headers: auth(token), payload: { model: 'slim' } });
+    expect(noSkin.statusCode).toBe(400);
   });
 
   it('news appear in the launcher feed, newest first', async () => {

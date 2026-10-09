@@ -38,3 +38,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: server-mod/build/libs/ageafterauth-*.jar
+          # Never "latest": electron-updater takes launcher updates from the latest release.
+          prerelease: true
