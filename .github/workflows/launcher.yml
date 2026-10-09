@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Опубликовать релиз (версия из launcher/package.json)
+        description: Опубликовать релиз (только из main; без галочки — просто собрать установщик)
         type: boolean
         default: false
 
@@ -40,14 +40,18 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  release:
-    if: >-
-      startsWith(github.ref, 'refs/tags/v') ||
-      (github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main')
+  installer:
+    # Tag or "publish" on main → build and publish a release; any other manual run → only build the
+    # installer and attach it to the run (to test it before releasing).
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: check
     runs-on: windows-latest
     permissions:
       contents: write
+    env:
+      PUBLISH: ${{ startsWith(github.ref, 'refs/tags/v') || (inputs.publish && github.ref == 'refs/heads/main') }}
+      # Optional repository variable overriding the account server URL (Settings → Variables → Actions).
+      MAIN_VITE_API_ROOT: ${{ vars.LAUNCHER_API_ROOT }}
     defaults:
       run:
         working-directory: launcher
@@ -65,9 +69,17 @@ jobs:
           version=$(node -p "require('./package.json').version")
           test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != v$version"; exit 1; }
       - run: npm ci
+      - name: Build installer
+        if: env.PUBLISH != 'true'
+        run: npm run dist
+      - if: env.PUBLISH != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: launcher/release/*.exe
+          if-no-files-found: error
       - name: Build and publish
+        if: env.PUBLISH == 'true'
         env:
-          # Repository variable with the account server URL (Settings → Variables → Actions).
-          MAIN_VITE_API_ROOT: ${{ vars.LAUNCHER_API_ROOT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run release

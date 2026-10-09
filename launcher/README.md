@@ -37,6 +37,8 @@ npm test
 2. GitHub → **Actions** → workflow **launcher** → **Run workflow** → ветка `main` → галочка **Опубликовать релиз** → **Run workflow**.
 3. Через ~10 минут в **Releases** появится `v<версия>` с `TheAgeAfter-Setup-<версия>.exe`. Уже установленные лаунчеры обновятся сами.
 
+Без галочки (или на любой другой ветке) установщик только собирается и прикрепляется к запуску workflow (артефакт `installer`) — так его можно проверить до релиза.
+
 Можно и тегом: `git tag v0.1.0 && git push origin v0.1.0` — версия в теге должна совпадать с `package.json`. Необязательная переменная репозитория `LAUNCHER_API_ROOT` (Settings → Secrets and variables → Actions → Variables) заменяет адрес сервера аккаунтов при сборке.
 
 **Локально (Windows):**
