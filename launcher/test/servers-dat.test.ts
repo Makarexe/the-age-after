@@ -61,6 +61,13 @@ describe('servers.dat', () => {
     ]);
   });
 
+  it('updates the address of our entry instead of adding a second one', async () => {
+    await ensureServerListed(dir, 'The Age After', 'play.example.ru:25565');
+    expect(await ensureServerListed(dir, 'The Age After', '185.9.145.108:32796')).toBe(true);
+    const { root } = readNbt(await readFile(path.join(dir, 'servers.dat')));
+    expect(servers(root)).toEqual([{ name: 'The Age After', ip: '185.9.145.108:32796' }]);
+  });
+
   it('leaves an unreadable file alone', async () => {
     const file = path.join(dir, 'servers.dat');
     await writeFile(file, Buffer.from([1, 2, 3]));
