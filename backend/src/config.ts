@@ -23,6 +23,7 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().optional(),
   ADMIN_NOTIFY_EMAIL: z.string().optional(),
+  ADMIN_USERNAMES: z.string().optional(),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
   NODE_ENV: z.string().default('development'),
 });
@@ -48,6 +49,8 @@ export interface Config {
   packManifestUrl: string;
   smtp?: SmtpConfig;
   adminNotifyEmail?: string;
+  /** Lowercased nicknames that are always active admins (bootstrap without a shell). */
+  adminUsernames: string[];
   trustProxyHops: number;
   production: boolean;
 }
@@ -86,6 +89,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     packManifestUrl: e.PACK_MANIFEST_URL,
     smtp,
     adminNotifyEmail: e.ADMIN_NOTIFY_EMAIL || undefined,
+    adminUsernames: (e.ADMIN_USERNAMES ?? '')
+      .split(/[\s,;]+/)
+      .map((n) => n.trim().toLowerCase())
+      .filter(Boolean),
     trustProxyHops: e.TRUST_PROXY_HOPS,
     production: e.NODE_ENV === 'production',
   };
