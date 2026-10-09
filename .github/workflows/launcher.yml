@@ -1,0 +1,64 @@
+name: launcher
+
+# Every push: typecheck, tests, build. A tag `v<version>` (same as launcher/package.json) builds the
+# Windows installer and publishes it to GitHub Releases, where electron-updater finds it.
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+    paths: ['launcher/**', 'tools/pack/**', '.github/workflows/launcher.yml']
+  pull_request:
+    paths: ['launcher/**', 'tools/pack/**', '.github/workflows/launcher.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    defaults:
+      run:
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: launcher/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: check
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: launcher/package-lock.json
+      - name: Tag matches package.json
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != v$version"; exit 1; }
+      - run: npm ci
+      - name: Build and publish
+        env:
+          # Repository variable with the account server URL (Settings → Variables → Actions).
+          MAIN_VITE_API_ROOT: ${{ vars.LAUNCHER_API_ROOT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release

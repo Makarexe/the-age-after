@@ -1,0 +1,14 @@
+{
+  "name": "the-age-after-pack",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Builds the modpack manifest for the launcher from the owner's CurseForge instance",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node build-pack.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

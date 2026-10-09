@@ -1,0 +1,11 @@
+{
+  "repo": "makarexe/the-age-after",
+  "tag": "pack-latest",
+  "minecraft": "1.21.1",
+  "neoforge": "21.1.256",
+  "overrideDirs": ["config", "defaultconfigs", "kubejs"],
+  "overrideFiles": ["options.txt"],
+  "firstInstallOnly": ["options.txt"],
+  "managedDirs": ["mods"],
+  "exclude": ["**/*.bak", "**/*.log", "**/*.tmp", "**/.DS_Store", "**/Thumbs.db"]
+}

@@ -12,6 +12,7 @@ release/
 # Gradle / Java (server-mod)
 .gradle/
 build/
+!launcher/build/
 run/
 run-client/
 run-server/
