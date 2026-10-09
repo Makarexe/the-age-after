@@ -180,7 +180,9 @@ const getString = (c: Compound, key: string) => {
 
 /**
  * Puts our server at the top of the multiplayer list unless an entry with the same address is
- * already there. Returns true if the file was changed. A servers.dat we can't parse is left alone.
+ * already there. An entry with our name but another address (the server moved) gets the new
+ * address instead of a duplicate. Returns true if the file was changed. A servers.dat we can't
+ * parse is left alone.
  */
 export async function ensureServerListed(gameDir: string, name: string, address: string): Promise<boolean> {
   const file = path.join(gameDir, 'servers.dat');
@@ -201,7 +203,11 @@ export async function ensureServerListed(gameDir: string, name: string, address:
   );
   if (listed) return false;
   list.value.elementType = 10;
-  list.value.items.unshift({
+  const ours = list.value.items.find((item) => item.type === 10 && getString(item.value, 'name') === name);
+  if (ours?.type === 10) {
+    ours.value = ours.value.filter(([k]) => k !== 'ip');
+    ours.value.push(['ip', { type: 8, value: address.trim() }]);
+  } else list.value.items.unshift({
     type: 10,
     value: [
       ['name', { type: 8, value: name }],

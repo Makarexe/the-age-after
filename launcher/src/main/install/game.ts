@@ -13,6 +13,7 @@ import { MINECRAFT_VERSION, NEOFORGE_VERSION } from '../../shared/constants';
 import { UserError } from '../errors';
 import { log } from '../log';
 import { fetchJavaManifest } from './java-manifest';
+import { withRetries } from './retry';
 
 export type StepProgress = (fraction: number | null, detail?: string) => void;
 
@@ -48,6 +49,16 @@ async function runTask<T>(task: Task<T>, onProgress: StepProgress): Promise<T> {
   });
 }
 
+/** The same step again after a network hiccup; the player sees "пробуем ещё раз". */
+function retrying<T>(what: string, fn: () => Promise<T>, onProgress: StepProgress): Promise<T> {
+  return withRetries(fn, {
+    onRetry: (attempt, attempts, err) => {
+      log.warn(`${what} failed, attempt ${attempt}/${attempts}`, err);
+      onProgress(null, `Не получилось, пробуем ещё раз (${attempt}/${attempts})…`);
+    },
+  });
+}
+
 function describe(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (err && typeof err === 'object') return JSON.stringify(err).slice(0, 300);
@@ -62,14 +73,14 @@ export async function ensureMinecraft(gameDir: string, onProgress: StepProgress)
     onProgress(null, 'Список версий');
     let list;
     try {
-      list = await getVersionList();
+      list = await retrying('version list', () => getVersionList(), onProgress);
     } catch (err) {
       throw new UserError(`Не удалось получить список версий Minecraft: ${describe(err)}`);
     }
     const meta = list.versions.find((v) => v.id === MINECRAFT_VERSION);
     if (!meta) throw new UserError(`Версия Minecraft ${MINECRAFT_VERSION} не найдена.`);
     try {
-      await runTask(installTask(meta, folder), onProgress);
+      await retrying('minecraft install', () => runTask(installTask(meta, folder), onProgress), onProgress);
     } catch (err) {
       log.error('minecraft install failed', err);
       throw new UserError(`Не удалось установить Minecraft ${MINECRAFT_VERSION}: ${describe(err)}`);
@@ -105,8 +116,9 @@ export async function ensureJava(gameDir: string, component: string, onProgress:
   if ((await hasMarker(gameDir, `java-${component}`, 'ok')) && existsSync(paths.javaw)) return paths;
   onProgress(null, 'Список файлов Java');
   try {
-    const manifest = await fetchJavaManifest(component);
-    await runTask(installJavaRuntimeTask({ destination: path.dirname(path.dirname(paths.java)), manifest }), onProgress);
+    const manifest = await retrying('java manifest', () => fetchJavaManifest(component), onProgress);
+    const destination = path.dirname(path.dirname(paths.java));
+    await retrying('java install', () => runTask(installJavaRuntimeTask({ destination, manifest }), onProgress), onProgress);
   } catch (err) {
     log.error('java install failed', err);
     throw new UserError(`Не удалось установить Java: ${describe(err)}`);
@@ -124,7 +136,11 @@ export async function ensureNeoForge(gameDir: string, java: string, onProgress: 
   if (markerVersion === NEOFORGE_VERSION && markerId && existsSync(folder.getVersionJson(markerId))) return markerId;
   let id: string;
   try {
-    id = await runTask(installNeoForgedTask('neoforge', NEOFORGE_VERSION, folder, { java, side: 'client' }), onProgress);
+    id = await retrying(
+      'neoforge install',
+      () => runTask(installNeoForgedTask('neoforge', NEOFORGE_VERSION, folder, { java, side: 'client' }), onProgress),
+      onProgress,
+    );
   } catch (err) {
     log.error('neoforge install failed', err);
     throw new UserError(`Не удалось установить NeoForge ${NEOFORGE_VERSION}: ${describe(err)}`);
