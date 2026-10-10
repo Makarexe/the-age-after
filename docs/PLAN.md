@@ -33,7 +33,7 @@
 backend/      Node 24 + TypeScript (ESM) + Fastify 5 + Drizzle ORM + PostgreSQL. Деплой на Railway.
               Тесты: vitest + PGlite (@electric-sql/pglite) — Postgres в процессе, Docker не нужен.
 launcher/     Electron + TypeScript + React (Vite), @xmcl/core + @xmcl/installer, electron-builder (NSIS x64).
-server-mod/   NeoForge 1.21.1 мод `ageafterauth` (только сервер).
+server-mod/   NeoForge 1.21.1 мод `ageafterauth` (сервер: авторизация; клиент: аватары Figura).
 tools/pack/   Node-скрипт сборки манифеста из инстанса CurseForge (запускается локально).
 docs/         Этот план.
 ```
@@ -107,7 +107,7 @@ register → verify → approve → authenticate → join → hasJoined (под�
 ## 2. server-mod — `ageafterauth`
 
 - NeoForge 1.21.1, `neo_version=21.1.256`, Java 21, `net.neoforged.moddev` 2.0.78, parchment `2024.11.17`. Шаблон — любой мод владельца (например, langsystem-mod).
-- Только dedicated-сервер: в `@Mod`-конструкторе проверяется `FMLEnvironment.dist.isDedicatedServer()`, `displayTest = IGNORE_SERVER_VERSION`.
+- Перенаправление только на dedicated-сервере: в `@Mod`-конструкторе проверяется `FMLEnvironment.dist.isDedicatedServer()`, `displayTest = IGNORE_SERVER_VERSION`. На клиенте с 0.2.0 работают только client-mixin для Figura (`ageafterauth.mixins.json`).
 - Конструктор читает `config/ageafterauth.properties` обычным `Properties.load`, потому что ModConfigSpec грузится позже. Ключ `api_root=https://...`. Дальше:
   - `System.setProperty("minecraft.api.session.host", root + "/sessionserver")`;
   - `System.setProperty("minecraft.api.services.host", root + "/minecraftservices")`;
@@ -155,7 +155,7 @@ register → verify → approve → authenticate → join → hasJoined (под�
 
 ## Известные ограничения
 
-- **Облачные аватары Figura**: официальное облако проверяет игрока через Mojang, поэтому у нас своё — Sculptor в [`figura/`](../figura/README.md), он проверяет игроков через наш `hasJoined`. Адрес задаётся переменной `FIGURA_SERVER` сервера аккаунтов, лаунчер прописывает его в `config/figura.json`.
+- **Облачные аватары Figura**: официальное облако проверяет игрока через Mojang, поэтому у нас своё — Sculptor в [`figura/`](../figura/README.md), он проверяет игроков через наш `hasJoined`. Адрес задаётся переменной `FIGURA_SERVER` сервера аккаунтов, лаунчер прописывает его в `config/figura.json`. Figura запрашивает аватары только для UUID версии 4, а у наших аккаунтов версия 3, поэтому `ageafterauth` с 0.2.0 ставится и игрокам: его mixin показывает Figura версию 4.
 - **Установщик не подписан**, Windows SmartScreen покажет предупреждение.
 
 ## Кто что делает

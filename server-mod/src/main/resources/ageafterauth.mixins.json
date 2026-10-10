@@ -1,0 +1,10 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "ru.theageafter.auth.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "FiguraEntityUtilsMixin",
+    "FiguraNetworkStuffMixin"
+  ]
+}

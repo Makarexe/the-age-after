@@ -11,7 +11,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Points the dedicated server's authlib at The Age After account server, so {@code online-mode=true}
- * checks players against our accounts instead of Mojang. Does nothing on the client.
+ * checks players against our accounts instead of Mojang. On the client only the Figura mixins
+ * work (see {@link FiguraUuids}).
  */
 @Mod(AgeAfterAuth.MOD_ID)
 public final class AgeAfterAuth {
@@ -22,7 +23,7 @@ public final class AgeAfterAuth {
 
     public AgeAfterAuth() {
         if (!FMLEnvironment.dist.isDedicatedServer()) {
-            LOGGER.info("{} is server-only, doing nothing on the client.", MOD_ID);
+            LOGGER.info("{}: client, only the Figura avatar fix is active.", MOD_ID);
             return;
         }
 
