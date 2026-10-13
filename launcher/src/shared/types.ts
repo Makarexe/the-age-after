@@ -37,6 +37,8 @@ export interface Settings {
   gameDir: string;
   /** Hide the launcher while the game runs, close it when the game exits. */
   hideWhilePlaying: boolean;
+  /** Join our server right after the game starts (Quick Play) instead of opening the main menu. */
+  quickJoin: boolean;
   /** Overrides the built-in account server address; empty = default. */
   apiRoot: string;
 }

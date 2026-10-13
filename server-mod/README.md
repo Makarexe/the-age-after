@@ -9,7 +9,7 @@
 
 ## Сборка
 
-- **GitHub Actions** (workflow `server-mod`): jar лежит в артефактах каждого запуска. Тег `ageafterauth-v<версия>` публикует его в GitHub Release.
+- **GitHub Actions** (workflow `server-mod`): jar лежит в артефактах каждого запуска. Релиз `ageafterauth-v<mod_version>` публикуется вкладкой Actions → server-mod → Run workflow на `main` с галочкой publish (или тегом `ageafterauth-v<версия>`).
 - **Локально:** `./gradlew build` (Windows: `gradlew.bat build`), нужен JDK 21. Jar — `build/libs/ageafterauth-<версия>.jar`.
 
 Тесты логики (без Minecraft): `./gradlew test`. Запуск сервера для проверки: `./gradlew runServer` (папка `run/`).

@@ -141,7 +141,7 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
     minMemory: Math.min(2048, settings.memoryMb),
     extraJVMArgs: JVM_ARGS,
     yggdrasilAgent: { jar: authlibJar, server: deps.apiRoot, prefetched },
-    quickPlayMultiplayer: config.serverAddress || undefined,
+    quickPlayMultiplayer: (settings.quickJoin && config.serverAddress) || undefined,
   });
   game = proc;
   deps.emitGameState({ state: 'running' });

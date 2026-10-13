@@ -71,6 +71,10 @@ export function SettingsTab({ state, onState, onError }: Props) {
           <input type="checkbox" checked={s.hideWhilePlaying} onChange={(e) => void save({ hideWhilePlaying: e.target.checked })} />
           Скрывать лаунчер во время игры и закрывать после выхода
         </label>
+        <label className="check">
+          <input type="checkbox" checked={s.quickJoin} onChange={(e) => void save({ quickJoin: e.target.checked })} />
+          Быстрый вход на сервер: сразу подключаться после запуска игры
+        </label>
       </section>
 
       <section className="card">

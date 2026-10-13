@@ -23,7 +23,7 @@ export class SettingsStore {
     private readonly file: string,
     defaultGameDir: string,
   ) {
-    const defaults: Settings = { memoryMb: defaultMemoryMb(), gameDir: defaultGameDir, hideWhilePlaying: false, apiRoot: '' };
+    const defaults: Settings = { memoryMb: defaultMemoryMb(), gameDir: defaultGameDir, hideWhilePlaying: false, quickJoin: true, apiRoot: '' };
     let stored: Partial<Settings> = {};
     try {
       stored = JSON.parse(readFileSync(file, 'utf8'));
