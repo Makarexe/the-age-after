@@ -46,7 +46,7 @@ Release `pack-latest` создаётся как pre-release, чтобы не с�
   "formatVersion": 1,
   "packVersion": "2026.10.09-1",
   "minecraft": "1.21.1",
-  "neoforge": "21.1.256",
+  "neoforge": "21.1.262",
   "files": [{ "path": "mods/x.jar", "sha1": "…", "size": 123, "url": "https://edge.forgecdn.net/…" }],
   "overrides": { "url": "…/config.zip", "sha1": "…", "size": 456, "files": 789 },
   "managedDirs": ["mods"],

@@ -45,4 +45,4 @@
 
 ## Версии
 
-`gradle.properties`: `mod_version` по semver (patch — фикс, minor — фича), NeoForge `21.1.256`, ModDevGradle `2.0.78`, parchment `2024.11.17`.
+`gradle.properties`: `mod_version` по semver (patch — фикс, minor — фича), NeoForge `21.1.262`, ModDevGradle `2.0.78`, parchment `2024.11.17`.

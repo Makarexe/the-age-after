@@ -58,6 +58,10 @@ export function validateManifest(data: unknown): PackManifest {
   if (!m || m.formatVersion !== 1 || !Array.isArray(m.files) || typeof m.packVersion !== 'string') {
     throw new UserError('Манифест сборки повреждён или слишком новый — обновите лаунчер.');
   }
+  // Goes into the NeoForge installer and file names.
+  if (typeof m.neoforge !== 'string' || !/^\d+(\.\d+)+(-[A-Za-z0-9.]+)?$/.test(m.neoforge)) {
+    throw new UserError(`В манифесте сборки неверная версия NeoForge: ${String(m.neoforge)}`);
+  }
   for (const f of m.files) {
     if (!isSafeRelativePath(f.path) || !/^[0-9a-f]{40}$/i.test(f.sha1) || !/^https:\/\//.test(f.url)) {
       throw new UserError(`Манифест сборки содержит неверную запись: ${String(f.path)}`);

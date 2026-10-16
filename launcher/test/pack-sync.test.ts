@@ -29,7 +29,7 @@ async function publish(packVersion: string, keepOverrides?: PackManifest['overri
     instanceDir: instance,
     config: {
       minecraft: '1.21.1',
-      neoforge: '21.1.256',
+      neoforge: '21.1.262',
       overrideDirs: ['config'],
       overrideFiles: ['options.txt'],
       firstInstallOnly: ['options.txt'],
@@ -219,7 +219,7 @@ describe('manifest validation', () => {
   });
 
   it('refuses unknown formats and unsafe entries', () => {
-    const ok = { formatVersion: 1, packVersion: 'x', minecraft: '1.21.1', neoforge: '21.1.256', files: [], overrides: null, managedDirs: ['mods'], firstInstallOnly: [] };
+    const ok = { formatVersion: 1, packVersion: 'x', minecraft: '1.21.1', neoforge: '21.1.262', files: [], overrides: null, managedDirs: ['mods'], firstInstallOnly: [] };
     expect(validateManifest(ok).files).toEqual([]);
     expect(() => validateManifest({ ...ok, formatVersion: 2 })).toThrow(/обновите лаунчер/);
     expect(() =>
@@ -228,6 +228,8 @@ describe('manifest validation', () => {
     expect(() =>
       validateManifest({ ...ok, files: [{ path: 'mods/a.jar', sha1: 'a'.repeat(40), size: 1, url: 'http://x' }] }),
     ).toThrow(/неверную запись/);
+    expect(() => validateManifest({ ...ok, neoforge: '21.1.262 --evil' })).toThrow(/версия NeoForge/);
+    expect(validateManifest({ ...ok, neoforge: '21.1.1-beta' }).neoforge).toBe('21.1.1-beta');
   });
 });
 
