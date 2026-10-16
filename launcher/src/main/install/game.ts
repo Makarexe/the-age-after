@@ -128,17 +128,23 @@ export async function ensureJava(gameDir: string, component: string, onProgress:
   return paths;
 }
 
-export async function ensureNeoForge(gameDir: string, java: string, onProgress: StepProgress): Promise<string> {
+/** `version`: the pack's NeoForge (manifest.neoforge), so a NeoForge update needs no launcher release. */
+export async function ensureNeoForge(
+  gameDir: string,
+  java: string,
+  onProgress: StepProgress,
+  version: string = NEOFORGE_VERSION,
+): Promise<string> {
   const folder = MinecraftFolder.from(gameDir);
   // The marker stores the version id the installer produced.
   const installedId = await readFile(path.join(gameDir, MARKERS_DIR, 'neoforge'), 'utf8').catch(() => '');
   const [markerVersion, markerId] = installedId.split('|');
-  if (markerVersion === NEOFORGE_VERSION && markerId && existsSync(folder.getVersionJson(markerId))) return markerId;
+  if (markerVersion === version && markerId && existsSync(folder.getVersionJson(markerId))) return markerId;
   let id: string;
   try {
     id = await retrying(
       'neoforge install',
-      () => runTask(installNeoForgedTask('neoforge', NEOFORGE_VERSION, folder, {
+      () => runTask(installNeoForgedTask('neoforge', version, folder, {
             java,
             side: 'client',
             dispatcher: downloadAgent(),
@@ -148,8 +154,8 @@ export async function ensureNeoForge(gameDir: string, java: string, onProgress: 
     );
   } catch (err) {
     log.error('neoforge install failed', err);
-    throw new UserError(`Не удалось установить NeoForge ${NEOFORGE_VERSION}: ${describeError(err)}`);
+    throw new UserError(`Не удалось установить NeoForge ${version}: ${describeError(err)}`);
   }
-  await setMarker(gameDir, 'neoforge', `${NEOFORGE_VERSION}|${id}`);
+  await setMarker(gameDir, 'neoforge', `${version}|${id}`);
   return id;
 }

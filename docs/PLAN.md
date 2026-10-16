@@ -8,7 +8,7 @@
 Приватный модовый сервер Minecraft (NeoForge 1.21.1, ~380 модов) для друзей. Ставить сборку руками умеют не все, версии у игроков разъезжаются (разный NeoForge → кик, мод только у части игроков → сломанный крафт). Нужен свой лаунчер, который:
 
 - регистрирует и логинит игрока **своим аккаунтом** (ник, почта, пароль; почту подтверждают; **регистрацию одобряет админ**);
-- сам ставит Java 21, Minecraft 1.21.1, NeoForge **21.1.256** и ровно нужную сборку модов и конфигов;
+- сам ставит Java 21, Minecraft 1.21.1, NeoForge **21.1.262** и ровно нужную сборку модов и конфигов;
 - запускает игру с **настоящей проверкой сессии**: сервер работает в `online-mode=true`, но проверяет игроков через наш сервер аккаунтов, а не через Mojang. Тогда ник нельзя подделать.
 
 Решения владельца: только **Windows**; название **The Age After** (папка игры `%APPDATA%\.theageafter`); репозиторий **публичный**; письма через **SMTP Яндекса или Gmail**; бэкенд на **Railway**.
@@ -106,7 +106,7 @@ register → verify → approve → authenticate → join → hasJoined (под�
 
 ## 2. server-mod — `ageafterauth`
 
-- NeoForge 1.21.1, `neo_version=21.1.256`, Java 21, `net.neoforged.moddev` 2.0.78, parchment `2024.11.17`. Шаблон — любой мод владельца (например, langsystem-mod).
+- NeoForge 1.21.1, `neo_version=21.1.262`, Java 21, `net.neoforged.moddev` 2.0.78, parchment `2024.11.17`. Шаблон — любой мод владельца (например, langsystem-mod).
 - Перенаправление только на dedicated-сервере: в `@Mod`-конструкторе проверяется `FMLEnvironment.dist.isDedicatedServer()`, `displayTest = IGNORE_SERVER_VERSION`. На клиенте с 0.2.0 работают только client-mixin для Figura (`ageafterauth.mixins.json`).
 - Конструктор читает `config/ageafterauth.properties` обычным `Properties.load`, потому что ModConfigSpec грузится позже. Ключ `api_root=https://...`. Дальше:
   - `System.setProperty("minecraft.api.session.host", root + "/sessionserver")`;
@@ -122,7 +122,7 @@ register → verify → approve → authenticate → join → hasJoined (под�
 Скрипт читает инстанс CurseForge: `minecraftinstance.json`, `mods/`, `config/`, `options.txt`. Результат — `manifest.json`:
 
 ```json
-{ "packVersion": "YYYY.MM.DD-N", "minecraft": "1.21.1", "neoforge": "21.1.256",
+{ "packVersion": "YYYY.MM.DD-N", "minecraft": "1.21.1", "neoforge": "21.1.262",
   "files": [ { "path": "mods/x.jar", "sha1": "…", "size": 123, "url": "https://edge.forgecdn.net/…" } ],
   "managedDirs": ["mods"], "firstInstallOnly": ["options.txt"] }
 ```
@@ -142,7 +142,7 @@ register → verify → approve → authenticate → join → hasJoined (под�
   - главная: «Играть», прогресс, онлайн сервера через MC ping, новости;
   - настройки: ОЗУ, папка, «открыть папку», «переустановить»;
   - скин.
-- **Установка** (`@xmcl/installer`): Java 21 из java-runtime Mojang, ванилла 1.21.1, `installNeoForged` 21.1.256, authlib-injector (последний релиз, проверка sha256).
+- **Установка** (`@xmcl/installer`): Java 21 из java-runtime Mojang, ванилла 1.21.1, `installNeoForged` 21.1.262, authlib-injector (последний релиз, проверка sha256).
 - **Синхронизация:** 8 потоков, проверка sha1; лишнее из `managedDirs` удаляется; конфиги перезаписываются, только когда изменился `config.zip` (публикация с `--mods-only` его не трогает), кроме `firstInstallOnly`. Если файл не скачался, лаунчер говорит, какой именно.
 - **Запуск** (`@xmcl/core`):
   - `-javaagent:authlib-injector.jar=<apiRoot>`;

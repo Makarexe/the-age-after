@@ -31,7 +31,7 @@ function readZip(buf) {
 const RELEASE = 'https://github.com/o/r/releases/download/pack-latest';
 const config = {
   minecraft: '1.21.1',
-  neoforge: '21.1.256',
+  neoforge: '21.1.262',
   overrideDirs: ['config', 'kubejs'],
   overrideFiles: ['options.txt'],
   firstInstallOnly: ['options.txt'],
@@ -63,7 +63,7 @@ before(async () => {
   await writeFile(
     path.join(dir, 'minecraftinstance.json'),
     JSON.stringify({
-      baseModLoader: { name: 'neoforge-21.1.256', forgeVersion: '21.1.256', minecraftVersion: '1.21.1' },
+      baseModLoader: { name: 'neoforge-21.1.262', forgeVersion: '21.1.262', minecraftVersion: '1.21.1' },
       installedAddons: [
         addon('JEI', 'jei-1.21.1.jar', jei),
         addon('Disabled Mod', 'old.jar.disabled', Buffer.from('x')),
@@ -142,7 +142,7 @@ describe('buildPack', () => {
       formatVersion: 1,
       packVersion: '2026.10.09-1',
       minecraft: '1.21.1',
-      neoforge: '21.1.256',
+      neoforge: '21.1.262',
       managedDirs: ['mods'],
       firstInstallOnly: ['options.txt'],
     });

@@ -1,5 +1,5 @@
 export const MINECRAFT_VERSION = '1.21.1';
-export const NEOFORGE_VERSION = '21.1.256';
+export const NEOFORGE_VERSION = '21.1.262';
 export const GAME_DIR_NAME = '.theageafter';
 export const USER_AGENT = 'TheAgeAfterLauncher';
 
