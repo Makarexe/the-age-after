@@ -11,7 +11,7 @@ describe('loadConfig', () => {
     expect(c.signingPrivateKey).toBeUndefined();
     expect(c.packManifestUrl).toContain('/releases/download/pack-latest/manifest.json');
     expect(c.port).toBe(3000);
-    expect(c.serverAddress).toBe('185.9.145.108:32796');
+    expect(c.serverAddress).toBe('95.217.150.106:32255');
     expect(c.figuraServer).toBe('');
   });
 
