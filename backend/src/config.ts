@@ -12,7 +12,7 @@ const envSchema = z.object({
   PUBLIC_URL: z.url(),
   SIGNING_PRIVATE_KEY: z.string().optional(),
   SERVER_NAME: z.string().default('The Age After'),
-  SERVER_ADDRESS: z.string().default('185.9.145.108:32796'),
+  SERVER_ADDRESS: z.string().default('5.9.97.124:32392'),
   /** Our Figura cloud (Sculptor), host[:port]; the launcher writes it into Figura's config. */
   FIGURA_SERVER: z.string().optional(),
   PACK_MANIFEST_URL: z
