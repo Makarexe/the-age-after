@@ -94,7 +94,7 @@ export async function readInstance(instanceDir) {
  * `keepOverrides`: the `overrides` of the published manifest, to keep configs untouched (--mods-only).
  * @returns {{ manifest: object, uploads: {name: string, data: Buffer}[], serverMods: string[], warnings: string[] }}
  */
-export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, packVersion, keepOverrides, optionalMods = [] }) {
+export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, packVersion, keepOverrides, optionalMods = [], onlyConfigs }) {
   const warnings = [];
   const instance = await readInstance(instanceDir);
   const minecraft = config.minecraft;
@@ -185,6 +185,13 @@ export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, pa
     const zip = createZip(zipEntries);
     uploads.push({ name: 'config.zip', data: zip });
     overrides = { url: `${releaseBaseUrl}/config.zip`, sha1: sha1(zip), size: zip.length, files: zipEntries.length };
+    if (onlyConfigs?.length) {
+      // Players who already have the pack get just these files; new installs get the whole zip.
+      const matched = zipEntries.filter((e) => matchesAny(e.name, onlyConfigs));
+      if (!matched.length) throw new Error(`--configs: ни один файл не подошёл под ${onlyConfigs.join(', ')}`);
+      overrides.only = onlyConfigs;
+      warnings.push(`Выборочные конфиги: у текущих игроков заменятся ${matched.length} файл(ов) из ${zipEntries.length}.`);
+    }
   }
 
   // Optional mods are downloaded by the launcher only when the player ticks them, so their jars must not
