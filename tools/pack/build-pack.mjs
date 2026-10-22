@@ -40,6 +40,7 @@ if (args.help || !(args.instance ?? process.env.PACK_INSTANCE)) {
 const instanceDir = path.resolve(args.instance ?? process.env.PACK_INSTANCE);
 const config = JSON.parse(await readFile(path.join(here, 'pack.json'), 'utf8'));
 const sides = JSON.parse(await readFile(path.join(here, 'sides.json'), 'utf8'));
+const optionalMods = JSON.parse(await readFile(path.join(here, 'optional-mods.json'), 'utf8')).mods;
 const releaseBaseUrl = `https://github.com/${config.repo}/releases/download/${config.tag}`;
 
 let previous = null;
@@ -62,6 +63,7 @@ const { manifest, uploads, serverMods, warnings } = await buildPack({
   sides,
   releaseBaseUrl,
   packVersion,
+  optionalMods,
   keepOverrides: args['mods-only'] ? (previous.overrides ?? null) : undefined,
 });
 

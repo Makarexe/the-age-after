@@ -103,6 +103,7 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
     gameDir,
     manifest,
     forceOverrides: deps.forceOverrides,
+    optionalMods: settings.optionalMods,
     onProgress: (s, fraction, detail) => syncStep[s](fraction, detail),
   });
   log.info(

@@ -11,6 +11,17 @@ export interface PackFile {
   url: string;
 }
 
+/** A client-only mod the player can switch on; its files live in mods/ only while it is enabled. */
+export interface OptionalMod {
+  id: string;
+  name: string;
+  description: string;
+  /** Dependency of another optional mod: not shown to the player, installed with it. */
+  library?: boolean;
+  requires?: string[];
+  files: PackFile[];
+}
+
 export interface PackManifest {
   formatVersion: number;
   packVersion: string;
@@ -20,6 +31,7 @@ export interface PackManifest {
   overrides: { url: string; sha1: string; size: number } | null;
   managedDirs: string[];
   firstInstallOnly: string[];
+  optionalMods: OptionalMod[];
 }
 
 /** CurseForge serves the same files from both hosts; when one answers 404, the other often has the file. */
@@ -70,7 +82,41 @@ export function validateManifest(data: unknown): PackManifest {
   for (const d of [...(m.managedDirs ?? []), ...(m.firstInstallOnly ?? [])]) {
     if (!isSafeRelativePath(d)) throw new UserError(`Манифест сборки содержит неверный путь: ${d}`);
   }
-  return { ...m, managedDirs: m.managedDirs ?? [], firstInstallOnly: m.firstInstallOnly ?? [] };
+  // Absent in manifests published before optional mods existed.
+  const optionalMods = m.optionalMods ?? [];
+  const ids = new Set<string>();
+  for (const o of optionalMods) {
+    if (!o || typeof o.id !== 'string' || typeof o.name !== 'string' || !Array.isArray(o.files) || ids.has(o.id)) {
+      throw new UserError('Манифест сборки содержит неверный опциональный мод.');
+    }
+    ids.add(o.id);
+    for (const f of o.files) {
+      if (!isSafeRelativePath(f.path) || !/^[0-9a-f]{40}$/i.test(f.sha1) || !/^https:\/\//.test(f.url)) {
+        throw new UserError(`Манифест сборки содержит неверную запись: ${String(f.path)}`);
+      }
+    }
+  }
+  for (const o of optionalMods) {
+    for (const r of o.requires ?? []) {
+      if (!ids.has(r)) throw new UserError(`Опциональный мод ${o.id} требует неизвестный ${r}.`);
+    }
+  }
+  return { ...m, managedDirs: m.managedDirs ?? [], firstInstallOnly: m.firstInstallOnly ?? [], optionalMods };
+}
+
+/** Files of the enabled optional mods plus everything they require; unknown ids are ignored. */
+export function optionalFiles(manifest: PackManifest, enabled: string[]): PackFile[] {
+  const byId = new Map(manifest.optionalMods.map((o) => [o.id, o]));
+  const taken = new Set<string>();
+  const visit = (id: string) => {
+    const o = byId.get(id);
+    if (!o || taken.has(id)) return;
+    taken.add(id);
+    o.requires?.forEach(visit);
+  };
+  enabled.forEach(visit);
+  const own = new Set(manifest.files.map((f) => f.path.toLowerCase()));
+  return [...taken].flatMap((id) => byId.get(id)!.files).filter((f) => !own.has(f.path.toLowerCase()));
 }
 
 export async function fetchManifest(url: string, fetchImpl: Fetch = fetch): Promise<PackManifest> {
@@ -126,6 +172,8 @@ export interface SyncOptions {
   fetchImpl?: Fetch;
   /** Re-apply configs even if config.zip didn't change ("Проверить файлы"). */
   forceOverrides?: boolean;
+  /** Ids of the optional mods the player switched on. */
+  optionalMods?: string[];
 }
 
 export interface SyncResult {
@@ -141,11 +189,12 @@ export async function syncPack(opts: SyncOptions): Promise<SyncResult> {
   await mkdir(gameDir, { recursive: true });
   const state = await loadState(gameDir);
 
-  // 1. What is missing or different.
+  // 1. What is missing or different. Disabled optional mods are simply not wanted, so step 3 removes them.
+  const allFiles = [...manifest.files, ...optionalFiles(manifest, opts.optionalMods ?? [])];
   const needed: PackFile[] = [];
-  for (let i = 0; i < manifest.files.length; i++) {
-    const f = manifest.files[i]!;
-    onProgress?.('check', i / Math.max(1, manifest.files.length), f.path);
+  for (let i = 0; i < allFiles.length; i++) {
+    const f = allFiles[i]!;
+    onProgress?.('check', i / Math.max(1, allFiles.length), f.path);
     const sha1 = await localSha1(path.join(gameDir, ...f.path.split('/')), f.path, state);
     if (sha1 !== f.sha1.toLowerCase()) needed.push(f);
   }
@@ -181,7 +230,7 @@ export async function syncPack(opts: SyncOptions): Promise<SyncResult> {
   }
 
   // 3. Remove what the pack no longer has (top level of managed dirs only; subfolders are mod data).
-  const wanted = new Set(manifest.files.map((f) => key(f.path)));
+  const wanted = new Set(allFiles.map((f) => key(f.path)));
   const removed: string[] = [];
   for (const dir of manifest.managedDirs) {
     let entries;

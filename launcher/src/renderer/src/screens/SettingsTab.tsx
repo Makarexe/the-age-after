@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import type { LauncherState, Settings } from '../../../shared/types';
 import { api, errorText } from '../api';
 import { Field } from '../components/Field';
+import { OptionalMods } from './OptionalMods';
 
 interface Props {
   state: LauncherState;
@@ -76,6 +77,8 @@ export function SettingsTab({ state, onState, onError }: Props) {
           Быстрый вход на сервер: сразу подключаться после запуска игры
         </label>
       </section>
+
+      <OptionalMods state={state} onSave={save} />
 
       <section className="card">
         <h3>Если игра не запускается</h3>

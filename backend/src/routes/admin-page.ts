@@ -42,7 +42,7 @@ h3{margin:0 0 12px}.scroll{overflow-x:auto}.pre{white-space:pre-wrap}
 (() => {
   const STATUS = {pending_email:'ждёт почту',pending_approval:'ждёт одобрения',active:'активен',rejected:'отклонён',banned:'забанен'};
   const ACTION = {approve:'Одобрить',reject:'Отклонить',ban:'Бан',unban:'Разбан',delete:'Удалить'};
-  const AUDIT = {approve:'одобрил',reject:'отклонил',ban:'забанил',unban:'разбанил',delete:'удалил',news_create:'добавил новость',news_delete:'удалил новость'};
+  const AUDIT = {approve:'одобрил',reject:'отклонил',ban:'забанил',unban:'разбанил',delete:'удалил',news_create:'добавил новость',news_delete:'удалил новость',backstory_edit:'изменил квенту'};
   const ALLOWED = {approve:['pending_email','pending_approval','rejected'],reject:['pending_email','pending_approval'],ban:['pending_email','pending_approval','active','rejected'],unban:['banned'],delete:['pending_email','pending_approval','rejected']};
   let token = sessionStorage.getItem('adminToken');
   let tab = 'pending';
@@ -80,13 +80,20 @@ h3{margin:0 0 12px}.scroll{overflow-x:auto}.pre{white-space:pre-wrap}
 
   function usersTable(list, empty) {
     if (!list.length) return el('p', { class: 'muted', textContent: empty });
-    const rows = list.map((u) => el('tr', {},
-      el('td', {}, el('div', { textContent: u.username + (u.isAdmin ? ' ★' : '') }), el('div', { class: 'muted', textContent: u.email })),
-      el('td', {}, el('span', { class: 'st ' + u.status, textContent: STATUS[u.status] || u.status }), u.statusReason ? el('div', { class: 'muted', textContent: u.statusReason }) : null),
-      el('td', { class: 'muted', textContent: fmt(u.createdAt) }),
-      el('td', {}, el('div', { class: 'acts' }, ...Object.keys(ACTION).filter((a) => ALLOWED[a].includes(u.status) && !u.isAdmin).map((a) =>
-        el('button', { class: 'a' + (a === 'approve' || a === 'unban' ? ' p' : a === 'ban' || a === 'delete' ? ' d' : ''), textContent: ACTION[a], onclick: () => act(u, a) })))),
-    ));
+    const rows = list.flatMap((u) => {
+      const ta = el('textarea', { value: u.backstory, maxLength: 10000 });
+      const save = el('button', { class: 'a p', textContent: 'Сохранить квенту', onclick: async () => { try { u.backstory = (await api('PUT', '/users/' + u.id + '/backstory', { backstory: ta.value })).backstory; alert('Сохранено.'); } catch (err) { alert(err.message); } } });
+      const detail = el('tr', { hidden: true }, el('td', { colSpan: 4 }, el('div', { class: 'muted', textContent: 'Квента ' + u.username + (u.backstory ? '' : ' (пока пусто)') }), ta, save));
+      const toggle = el('button', { class: 'a', textContent: u.backstory ? 'Квента' : 'Квента (пусто)', onclick: () => { detail.hidden = !detail.hidden; } });
+      const main = el('tr', {},
+        el('td', {}, el('div', { textContent: u.username + (u.isAdmin ? ' ★' : '') }), el('div', { class: 'muted', textContent: u.email })),
+        el('td', {}, el('span', { class: 'st ' + u.status, textContent: STATUS[u.status] || u.status }), u.statusReason ? el('div', { class: 'muted', textContent: u.statusReason }) : null),
+        el('td', { class: 'muted', textContent: fmt(u.createdAt) }),
+        el('td', {}, el('div', { class: 'acts' }, toggle, ...Object.keys(ACTION).filter((a) => ALLOWED[a].includes(u.status) && !u.isAdmin).map((a) =>
+          el('button', { class: 'a' + (a === 'approve' || a === 'unban' ? ' p' : a === 'ban' || a === 'delete' ? ' d' : ''), textContent: ACTION[a], onclick: () => act(u, a) })))),
+      );
+      return [main, detail];
+    });
     return el('div', { class: 'scroll' }, el('table', {}, el('thead', {}, el('tr', {}, ...['Игрок', 'Статус', 'Создан', ''].map((h) => el('th', { textContent: h })))), el('tbody', {}, ...rows)));
   }
 

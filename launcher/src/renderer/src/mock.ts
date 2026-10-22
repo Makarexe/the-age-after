@@ -7,13 +7,13 @@ export function installMock() {
   const params = new URLSearchParams(location.search);
   let state: LauncherState = {
     profile: params.has('login') ? null : { id: 'a74d5f2017e33501824aa3cad0ceeba8', name: 'Makar' },
-    settings: { memoryMb: 6144, gameDir: 'C:\\Users\\makar\\AppData\\Roaming\\.theageafter', hideWhilePlaying: false, quickJoin: true, apiRoot: '' },
+    settings: { memoryMb: 6144, gameDir: 'C:\\Users\\makar\\AppData\\Roaming\\.theageafter', hideWhilePlaying: false, quickJoin: true, apiRoot: '', optionalMods: [] },
     defaultApiRoot: 'https://the-age-after-production.up.railway.app',
     apiRoot: 'https://the-age-after-production.up.railway.app',
     version: '0.1.0',
     totalMemoryMb: 16384,
   };
-  const me: Me = { id: 'a74d', username: 'Makar', email: 'm@example.com', status: 'active', isAdmin: true, skin: null, createdAt: new Date().toISOString() };
+  const me: Me = { id: 'a74d', username: 'Makar', email: 'm@example.com', status: 'active', isAdmin: true, skin: null, createdAt: new Date().toISOString(), backstory: '' };
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const handlers: Record<string, (...a: never[]) => unknown> = {
     getState: () => state,
@@ -31,6 +31,10 @@ export function installMock() {
       { id: 1, title: 'Добро пожаловать!', body: 'Теперь вход по своим аккаунтам — ник подделать нельзя.', createdAt: new Date(Date.now() - 86400e3 * 3).toISOString() },
     ],
     getServerConfig: () => ({ serverName: 'The Age After', serverAddress: 'play.theageafter.ru', packManifestUrl: '', apiRoot: state.apiRoot }),
+    getOptionalMods: () => [
+      { id: 'forgematica', name: 'Litematica (Forgematica)', description: 'Схемы построек: полупрозрачная проекция.', sizeBytes: 2960934, needs: ['MaFgLib (MaLiLib)'] },
+      { id: 'iris', name: 'Iris Shaders', description: 'Шейдеры.', sizeBytes: 2540723, needs: [] },
+    ],
     pingServer: () => ({ online: true, players: { online: 3, max: 20 }, latencyMs: 42, version: 'NeoForge 1.21.1', motd: 'Эпоха после — выживание с модами' }),
     play: async () => {
       emit('gameState', { state: 'preparing' } satisfies GameState);
@@ -59,6 +63,7 @@ export function installMock() {
     uploadSkin: () => me,
     setSkinModel: () => me,
     resetSkin: () => me,
+    saveBackstory: (text: string) => Object.assign(me, { backstory: text }),
     installUpdate: () => undefined,
   };
   window.launcherBridge = {

@@ -76,6 +76,7 @@ API по спецификации authlib-injector (Yggdrasil): https://github.c
 - `GET me`, `POST change-password`;
 - `POST skin` → `{png base64, model: classic|slim}`, проверка PNG 64×64 или 64×32;
 - `GET news`.
+- `PUT backstory` → `{backstory ≤10000}`: квента персонажа (колонка `users.backstory`); отдаётся в `GET me`. Админка: у игрока кнопка «Квента» (просмотр и правка), `PUT /admin/api/users/:id/backstory`, пишется в `audit_log`.
 
 Жизненный цикл аккаунта: `pending_email` → (ссылка из письма) → `pending_approval` → (админ) → `active`. Из любого состояния возможны `rejected` и `banned`. Если SMTP не настроен, письма пишутся в лог, а шаг подтверждения почты пропускается (сразу `pending_approval`).
 
@@ -152,6 +153,8 @@ register → verify → approve → authenticate → join → hasJoined (под�
 - **Хранение:** accessToken шифруется Electron `safeStorage`, пароль не хранится.
 - **Автообновление:** electron-updater из публичных GitHub Releases этого репозитория.
 - Проект лежит в пути с кириллицей. Если NSIS споткнётся, собирать через `subst X:` с ASCII-путём.
+
+**Опциональные моды** (`tools/pack/optional-mods.json` → `optionalMods` в манифесте): клиентские моды с галочками в «Настройки» лаунчера (`settings.optionalMods`), для входа не нужны; включённые скачиваются в `mods/` вместе с `requires`, выключенные удаляются обычной чисткой `managedDirs`. Сейчас: Forgematica (порт Litematica) + MaFgLib, Iris, Particle Rain, Better Clouds. Не проверено в игре — см. отчёт.
 
 ## Известные ограничения
 

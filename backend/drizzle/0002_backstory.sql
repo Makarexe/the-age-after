@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "backstory" text DEFAULT '' NOT NULL;

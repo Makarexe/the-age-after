@@ -99,6 +99,38 @@ describe('syncPack against tools/pack output', () => {
     expect(requests).toEqual([]);
   });
 
+  it('optional mods: installed with their libraries when enabled, removed when disabled', async () => {
+    const lib = Buffer.from('lib bytes');
+    const mod = Buffer.from('opt bytes');
+    served.set('https://cdn.example/lib.jar', lib);
+    served.set('https://cdn.example/opt.jar', mod);
+    const manifest = await publish('2026.10.09-1');
+    manifest.optionalMods = [
+      { id: 'opt', name: 'Opt', description: '', requires: ['lib'], files: [{ path: 'mods/opt.jar', sha1: sha1(mod), size: mod.length, url: 'https://cdn.example/opt.jar' }] },
+      { id: 'lib', name: 'Lib', description: '', library: true, files: [{ path: 'mods/lib.jar', sha1: sha1(lib), size: lib.length, url: 'https://cdn.example/lib.jar' }] },
+    ];
+    validateManifest(JSON.parse(JSON.stringify(manifest)));
+
+    const off = await syncPack({ gameDir, manifest, fetchImpl: fakeFetch });
+    expect(off.downloaded).not.toContain('mods/opt.jar');
+
+    const on = await syncPack({ gameDir, manifest, optionalMods: ['opt', 'nonexistent'], fetchImpl: fakeFetch });
+    expect(on.downloaded.sort()).toEqual(['mods/lib.jar', 'mods/opt.jar']);
+    expect(await readFile(path.join(gameDir, 'mods', 'opt.jar'), 'utf8')).toBe('opt bytes');
+
+    const again = await syncPack({ gameDir, manifest, optionalMods: ['opt'], fetchImpl: fakeFetch });
+    expect(again.downloaded).toEqual([]);
+
+    const disabled = await syncPack({ gameDir, manifest, optionalMods: [], fetchImpl: fakeFetch });
+    expect(disabled.removed.sort()).toEqual(['mods/lib.jar', 'mods/opt.jar']);
+  });
+
+  it('refuses an optional mod that requires an unknown id', async () => {
+    const manifest = await publish('2026.10.09-1');
+    manifest.optionalMods = [{ id: 'a', name: 'A', description: '', requires: ['zzz'], files: [] }];
+    expect(() => validateManifest(JSON.parse(JSON.stringify(manifest)))).toThrow(/zzz/);
+  });
+
   it('pack update: replaces changed mods, removes extras, keeps the player options.txt', async () => {
     await syncPack({ gameDir, manifest: await publish('2026.10.09-1'), fetchImpl: fakeFetch });
     await writeFile(path.join(gameDir, 'options.txt'), 'player options');

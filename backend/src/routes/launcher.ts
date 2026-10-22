@@ -39,6 +39,10 @@ const skinBody = z.object({
   model: z.enum(['classic', 'slim']).default('classic'),
 });
 
+export const backstorySchema = z.object({
+  backstory: z.string({ error: 'Нет текста квенты.' }).max(10000, 'Квента слишком длинная (до 10 000 символов).'),
+});
+
 export function meResponse(user: User, publicUrl: string) {
   return {
     id: undashed(user.id),
@@ -48,6 +52,7 @@ export function meResponse(user: User, publicUrl: string) {
     isAdmin: user.isAdmin,
     skin: user.skinSha256 ? { url: textureUrl(publicUrl, user.skinSha256), model: user.skinModel } : null,
     createdAt: user.createdAt.toISOString(),
+    backstory: user.backstory,
   };
 }
 
@@ -176,6 +181,13 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
         return reply.status(204).send();
       },
     );
+
+    app.put('/backstory', async (req) => {
+      const session = await requireSession(req);
+      const { backstory } = parse(backstorySchema, req.body);
+      const [user] = await db.update(users).set({ backstory }).where(eq(users.id, session.user.id)).returning();
+      return meResponse(user!, config.publicUrl);
+    });
 
     app.post('/skin', async (req) => {
       const session = await requireSession(req);
