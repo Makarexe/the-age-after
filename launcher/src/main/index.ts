@@ -2,17 +2,20 @@ import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell, type IpcMainInvokeEvent } from 'electron';
 import { GAME_DIR_NAME, IPC } from '../shared/constants';
-import type { GameState, IpcResult, LauncherState, Progress, Settings, UpdateState } from '../shared/types';
+import type { GameState, IpcResult, LauncherState, OptionalModInfo, Progress, Settings, UpdateState } from '../shared/types';
 import { ApiClient } from './api';
 import { UserError } from './errors';
 import { clearMarkers } from './install/game';
-import { STATE_FILE } from './install/pack';
+import { fetchManifest, optionalFiles, STATE_FILE, type PackManifest } from './install/pack';
 import { initLog, log } from './log';
 import { pingServer } from './ping';
 import { isGameRunning, play } from './play';
 import { SessionStore } from './session';
 import { SettingsStore, totalMemoryMb } from './settings';
 import { initUpdater, installUpdate } from './updater';
+
+/** Dev only: test a locally built manifest (tools/pack/out) instead of the published one. */
+const MANIFEST_URL_OVERRIDE = process.env.AGEAFTER_MANIFEST_URL;
 
 const DEFAULT_API_ROOT = (import.meta.env.MAIN_VITE_API_ROOT || 'https://the-age-after-production.up.railway.app').replace(/\/+$/, '');
 
@@ -119,8 +122,25 @@ function main() {
     uploadSkin: (png: string, model: 'classic' | 'slim') => authed((t) => api.uploadSkin(t, png, model)),
     setSkinModel: (model: 'classic' | 'slim') => authed((t) => api.setSkinModel(t, model)),
     resetSkin: () => authed((t) => api.resetSkin(t)),
+    saveBackstory: (backstory: string) => authed((t) => api.saveBackstory(t, String(backstory))),
     getNews: () => api.news(),
     getServerConfig: () => api.config(),
+    getOptionalMods: async (): Promise<OptionalModInfo[]> => {
+      const { optionalMods } = await fetchManifest(MANIFEST_URL_OVERRIDE || (await api.config()).packManifestUrl);
+      const byId = new Map(optionalMods.map((o) => [o.id, o]));
+      return optionalMods
+        .filter((o) => !o.library)
+        .map((o) => {
+          const deps = optionalFiles({ files: [], optionalMods } as unknown as PackManifest, [o.id]);
+          return {
+            id: o.id,
+            name: o.name,
+            description: o.description,
+            sizeBytes: deps.reduce((n, f) => n + f.size, 0),
+            needs: (o.requires ?? []).map((r) => byId.get(r)?.name ?? r),
+          };
+        });
+    },
     pingServer: async () => pingServer((await api.config()).serverAddress),
     play: async () => {
       const current = settings.get();

@@ -175,3 +175,5 @@ details summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
 
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-thumb { background: #3a3128; border-radius: 10px; border: 2px solid var(--bg); }
+
+.backstory { width: 100%; box-sizing: border-box; resize: vertical; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border, #3a342a); background: transparent; color: inherit; font: inherit; }

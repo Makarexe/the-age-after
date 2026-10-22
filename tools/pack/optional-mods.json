@@ -1,0 +1,72 @@
+{
+  "$comment": "Опциональные моды: игрок включает их галочками в лаунчере, на вход на сервер они не влияют. Только клиентские моды NeoForge 1.21.1. Ссылки, sha1 и размеры взяты из Modrinth API и сверены со скачанными jar. library:true — не показывается игроку, ставится вместе с модом, которому нужна (requires).",
+  "mods": [
+    {
+      "id": "forgematica",
+      "name": "Litematica (Forgematica)",
+      "description": "Схемы построек: полупрозрачная проекция, подсветка недостающих блоков. Неофициальный порт Litematica на NeoForge.",
+      "requires": ["mafglib"],
+      "files": [
+        {
+          "path": "mods/forgematica-0.4.3+mc1.21.1.jar",
+          "sha1": "d27eec1a3b72520ec096a2c0e35adce65031d36e",
+          "size": 1646167,
+          "url": "https://cdn.modrinth.com/data/dCKRaeBC/versions/PFUOWUDF/forgematica-0.4.3%2Bmc1.21.1.jar"
+        }
+      ]
+    },
+    {
+      "id": "mafglib",
+      "name": "MaFgLib (MaLiLib)",
+      "description": "Библиотека для Litematica.",
+      "library": true,
+      "files": [
+        {
+          "path": "mods/mafglib-0.4.3+mc1.21.1.jar",
+          "sha1": "9f62df832b1d5c9fe1aead873bd65cb8defacac7",
+          "size": 1314767,
+          "url": "https://cdn.modrinth.com/data/SKI34J7B/versions/CgDQ0u0Q/mafglib-0.4.3%2Bmc1.21.1.jar"
+        }
+      ]
+    },
+    {
+      "id": "iris",
+      "name": "Iris Shaders",
+      "description": "Шейдеры (совместимы с шейдерпаками OptiFine). Работает поверх Sodium из сборки; сами шейдерпаки кладутся в папку shaderpacks.",
+      "files": [
+        {
+          "path": "mods/iris-neoforge-1.8.14-beta.1+mc1.21.1.jar",
+          "sha1": "1bd129cf7bce65d6b1c0543045f0620c98a0f885",
+          "size": 2540723,
+          "url": "https://cdn.modrinth.com/data/YL57xq9U/versions/KduFYu4t/iris-neoforge-1.8.14-beta.1%2Bmc1.21.1.jar"
+        }
+      ]
+    },
+    {
+      "id": "particlerain",
+      "name": "Particle Rain",
+      "description": "Дождь и снег частицами вместо ванильных полос.",
+      "files": [
+        {
+          "path": "mods/particlerain-4.0.2+1.21.1-neoforge.jar",
+          "sha1": "444c6f221e57cca8e433702b18c4643faa82545a",
+          "size": 623257,
+          "url": "https://cdn.modrinth.com/data/nrikgvxm/versions/RxfaR4ud/particlerain-4.0.2%2B1.21.1-neoforge.jar"
+        }
+      ]
+    },
+    {
+      "id": "betterclouds",
+      "name": "Better Clouds",
+      "description": "Объёмные облака в ванильном стиле. Нужна YACL — она уже есть в сборке.",
+      "files": [
+        {
+          "path": "mods/better-clouds-1.13.11+1.21.1-neoforge.jar",
+          "sha1": "949fa76046ac2303c05f9fdcda782eb22e4d3683",
+          "size": 817079,
+          "url": "https://cdn.modrinth.com/data/5srFLIaK/versions/UvRCtZxT/better-clouds-1.13.11%2B1.21.1-neoforge.jar"
+        }
+      ]
+    }
+  ]
+}

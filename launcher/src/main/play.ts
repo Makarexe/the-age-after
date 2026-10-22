@@ -84,7 +84,7 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
 
   step('prepare', 'Получаем настройки сервера')(null);
   const config: ServerConfig = await api.config();
-  const manifest = await fetchManifest(config.packManifestUrl);
+  const manifest = await fetchManifest(process.env.AGEAFTER_MANIFEST_URL || config.packManifestUrl);
   await mkdir(gameDir, { recursive: true });
 
   const { javaComponent } = await ensureMinecraft(gameDir, step('minecraft', 'Устанавливаем Minecraft'));
@@ -103,6 +103,7 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
     gameDir,
     manifest,
     forceOverrides: deps.forceOverrides,
+    optionalMods: settings.optionalMods,
     onProgress: (s, fraction, detail) => syncStep[s](fraction, detail),
   });
   log.info(

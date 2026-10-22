@@ -15,6 +15,13 @@
       "when": 1791544884418,
       "tag": "0001_app_secrets",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792683878933,
+      "tag": "0002_backstory",
+      "breakpoints": true
     }
   ]
 }

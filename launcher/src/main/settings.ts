@@ -23,7 +23,7 @@ export class SettingsStore {
     private readonly file: string,
     defaultGameDir: string,
   ) {
-    const defaults: Settings = { memoryMb: defaultMemoryMb(), gameDir: defaultGameDir, hideWhilePlaying: false, quickJoin: true, apiRoot: '' };
+    const defaults: Settings = { memoryMb: defaultMemoryMb(), gameDir: defaultGameDir, hideWhilePlaying: false, quickJoin: true, apiRoot: '', optionalMods: [] };
     let stored: Partial<Settings> = {};
     try {
       stored = JSON.parse(readFileSync(file, 'utf8'));
@@ -40,6 +40,7 @@ export class SettingsStore {
   update(patch: Partial<Settings>): Settings {
     const next = { ...this.value, ...patch };
     next.memoryMb = clampMemory(next.memoryMb);
+    next.optionalMods = [...new Set((Array.isArray(next.optionalMods) ? next.optionalMods : []).filter((x) => typeof x === 'string'))];
     next.apiRoot = next.apiRoot.trim().replace(/\/+$/, '');
     if (next.apiRoot && !/^https?:\/\/[^/\s]+/.test(next.apiRoot)) throw new Error('Адрес сервера должен начинаться с https://');
     this.value = next;

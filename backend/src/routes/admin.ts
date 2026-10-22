@@ -12,6 +12,7 @@ import { sendSafely } from '../services/registration.js';
 import { findSession, issueAccessToken, revokeAllTokens, revokeToken } from '../services/tokens.js';
 import { findUserById, findUserByLogin } from '../services/users.js';
 import { adminPage } from './admin-page.js';
+import { backstorySchema } from './launcher.js';
 
 const loginBody = z.object({ login: z.string().trim().min(1).max(254), password: z.string().min(1).max(256) });
 const actionBody = z.object({ reason: z.string().trim().max(500).optional() });
@@ -39,6 +40,7 @@ function userRow(u: User) {
     status: u.status,
     isAdmin: u.isAdmin,
     statusReason: u.statusReason,
+    backstory: u.backstory,
     createdAt: u.createdAt.toISOString(),
     emailVerifiedAt: u.emailVerifiedAt?.toISOString() ?? null,
     approvedAt: u.approvedAt?.toISOString() ?? null,
@@ -130,6 +132,16 @@ export function adminRoutes(ctx: AppContext): FastifyPluginAsync {
       if (act === 'ban' || act === 'reject') await revokeAllTokens(db, target.id);
       await audit(admin.id, act, target, reason ? { reason } : {});
       if (act === 'approve') void sendSafely(ctx, req.log, approvedMail(config, target.email, target.username));
+      return userRow(updated!);
+    });
+
+    app.put('/admin/api/users/:id/backstory', async (req) => {
+      const { user: admin } = await requireAdmin(req);
+      const target = await findUserById(db, (req.params as { id: string }).id);
+      if (!target) throw notFound('Пользователь не найден.');
+      const { backstory } = parse(backstorySchema, req.body);
+      const [updated] = await db.update(users).set({ backstory }).where(eq(users.id, target.id)).returning();
+      await audit(admin.id, 'backstory_edit', target);
       return userRow(updated!);
     });
 

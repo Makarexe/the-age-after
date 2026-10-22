@@ -241,3 +241,24 @@ describe('me, skins, news', () => {
     expect((await t.app.inject({ method: 'GET', url: '/launcher/news' })).json()).toHaveLength(1);
   });
 });
+
+describe('backstory', () => {
+  it('player saves it, admin reads and edits it', async () => {
+    await createActivePlayer(t, adminToken, 'Lorekeeper');
+    const token = (await authenticate(t.app, 'Lorekeeper')).json().accessToken;
+    let res = await t.app.inject({ method: 'PUT', url: '/launcher/backstory', headers: auth(token), payload: { backstory: 'Родился в Рохане.' } });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().backstory).toBe('Родился в Рохане.');
+    expect((await t.app.inject({ method: 'GET', url: '/launcher/me', headers: auth(token) })).json().backstory).toBe('Родился в Рохане.');
+
+    res = await t.app.inject({ method: 'PUT', url: '/launcher/backstory', headers: auth(token), payload: { backstory: 'x'.repeat(10001) } });
+    expect(res.statusCode).toBe(400);
+
+    const list = (await t.app.inject({ method: 'GET', url: '/admin/api/users', headers: auth(adminToken) })).json();
+    const row = list.find((u: { username: string }) => u.username === 'Lorekeeper');
+    expect(row.backstory).toBe('Родился в Рохане.');
+    res = await t.app.inject({ method: 'PUT', url: `/admin/api/users/${row.id}/backstory`, headers: auth(adminToken), payload: { backstory: 'Правка админа' } });
+    expect(res.json().backstory).toBe('Правка админа');
+    expect((await t.app.inject({ method: 'PUT', url: `/admin/api/users/${row.id}/backstory`, headers: auth(token), payload: { backstory: 'x' } })).statusCode).toBe(403);
+  });
+});

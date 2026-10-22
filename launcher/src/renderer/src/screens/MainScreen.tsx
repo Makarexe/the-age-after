@@ -5,12 +5,14 @@ import { Brand } from '../components/Brand';
 import { SkinView } from '../components/SkinView';
 import { PlayTab } from './PlayTab';
 import { SettingsTab } from './SettingsTab';
+import { BackstoryTab } from './BackstoryTab';
 import { SkinTab } from './SkinTab';
 
-type Tab = 'play' | 'skin' | 'settings';
+type Tab = 'play' | 'skin' | 'backstory' | 'settings';
 const TABS: [Tab, string][] = [
   ['play', 'Играть'],
   ['skin', 'Скин'],
+  ['backstory', 'Квента'],
   ['settings', 'Настройки'],
 ];
 
@@ -78,6 +80,7 @@ export function MainScreen({ state, profile, onState, onLogout }: Props) {
           <PlayTab onError={handleError} />
         </div>
         {tab === 'skin' && <SkinTab me={me} onMe={setMe} onError={handleError} />}
+        {tab === 'backstory' && <BackstoryTab me={me} onMe={setMe} onError={handleError} />}
         {tab === 'settings' && <SettingsTab state={state} onState={onState} onError={handleError} />}
       </main>
     </div>

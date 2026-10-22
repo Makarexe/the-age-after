@@ -145,6 +145,7 @@ describe('buildPack', () => {
       neoforge: '21.1.262',
       managedDirs: ['mods'],
       firstInstallOnly: ['options.txt'],
+      optionalMods: [],
     });
   });
 

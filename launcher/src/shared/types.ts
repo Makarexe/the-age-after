@@ -13,6 +13,7 @@ export interface Me {
   isAdmin: boolean;
   skin: { url: string; model: 'classic' | 'slim' } | null;
   createdAt: string;
+  backstory: string;
 }
 
 export interface NewsItem {
@@ -41,6 +42,17 @@ export interface Settings {
   quickJoin: boolean;
   /** Overrides the built-in account server address; empty = default. */
   apiRoot: string;
+  /** Ids of the optional mods the player switched on. */
+  optionalMods: string[];
+}
+
+export interface OptionalModInfo {
+  id: string;
+  name: string;
+  description: string;
+  sizeBytes: number;
+  /** Names of the other mods that get installed along with this one. */
+  needs: string[];
 }
 
 export interface LauncherState {
@@ -101,8 +113,10 @@ export interface LauncherApi {
   uploadSkin(pngBase64: string, model: 'classic' | 'slim'): Promise<Me>;
   setSkinModel(model: 'classic' | 'slim'): Promise<Me>;
   resetSkin(): Promise<Me>;
+  saveBackstory(backstory: string): Promise<Me>;
   getNews(): Promise<NewsItem[]>;
   getServerConfig(): Promise<ServerConfig>;
+  getOptionalMods(): Promise<OptionalModInfo[]>;
   pingServer(): Promise<ServerStatus>;
   play(): Promise<void>;
   saveSettings(settings: Partial<Settings>): Promise<Settings>;

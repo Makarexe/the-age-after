@@ -56,6 +56,8 @@ export const users = pgTable(
     skinSha256: text('skin_sha256').references(() => skins.sha256, { onDelete: 'set null' }),
     skinModel: skinModel('skin_model').notNull().default('classic'),
     statusReason: text('status_reason'),
+    /** Character backstory; written by the player in the launcher, readable and editable by admins. */
+    backstory: text('backstory').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     approvedAt: timestamp('approved_at', { withTimezone: true }),

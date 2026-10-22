@@ -94,7 +94,7 @@ export async function readInstance(instanceDir) {
  * `keepOverrides`: the `overrides` of the published manifest, to keep configs untouched (--mods-only).
  * @returns {{ manifest: object, uploads: {name: string, data: Buffer}[], serverMods: string[], warnings: string[] }}
  */
-export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, packVersion, keepOverrides }) {
+export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, packVersion, keepOverrides, optionalMods = [] }) {
   const warnings = [];
   const instance = await readInstance(instanceDir);
   const minecraft = config.minecraft;
@@ -187,6 +187,18 @@ export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, pa
     overrides = { url: `${releaseBaseUrl}/config.zip`, sha1: sha1(zip), size: zip.length, files: zipEntries.length };
   }
 
+  // Optional mods are downloaded by the launcher only when the player ticks them, so their jars must not
+  // clash with the pack's own files (the launcher would delete one of them as an extra).
+  const ids = new Set(optionalMods.map((m) => m.id));
+  if (ids.size !== optionalMods.length) throw new Error('optional-mods.json: повторяющийся id');
+  const packPaths = new Set(files.map((f) => f.path.toLowerCase()));
+  for (const m of optionalMods) {
+    for (const r of m.requires ?? []) if (!ids.has(r)) throw new Error(`optional-mods.json: ${m.id} требует неизвестный ${r}`);
+    for (const f of m.files) {
+      if (packPaths.has(f.path.toLowerCase())) throw new Error(`optional-mods.json: ${f.path} уже есть в сборке`);
+    }
+  }
+
   files.sort((a, b) => a.path.localeCompare(b.path));
   serverMods.sort((a, b) => a.localeCompare(b));
   const manifest = {
@@ -198,6 +210,7 @@ export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, pa
     overrides,
     managedDirs: config.managedDirs ?? ['mods'],
     firstInstallOnly: config.firstInstallOnly ?? [],
+    optionalMods,
   };
   return { manifest, uploads, serverMods, warnings };
 }

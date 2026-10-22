@@ -118,6 +118,10 @@ export class ApiClient {
     return this.request<Me>('DELETE', '/launcher/skin', { token });
   }
 
+  saveBackstory(token: string, backstory: string) {
+    return this.request<Me>('PUT', '/launcher/backstory', { token, body: { backstory } });
+  }
+
   news() {
     return this.request<NewsItem[]>('GET', '/launcher/news');
   }
