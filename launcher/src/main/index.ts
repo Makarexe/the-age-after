@@ -14,6 +14,9 @@ import { SessionStore } from './session';
 import { SettingsStore, totalMemoryMb } from './settings';
 import { initUpdater, installUpdate } from './updater';
 
+/** Dev only: test a locally built manifest (tools/pack/out) instead of the published one. */
+const MANIFEST_URL_OVERRIDE = process.env.AGEAFTER_MANIFEST_URL;
+
 const DEFAULT_API_ROOT = (import.meta.env.MAIN_VITE_API_ROOT || 'https://the-age-after-production.up.railway.app').replace(/\/+$/, '');
 
 if (!app.requestSingleInstanceLock()) {
@@ -123,7 +126,7 @@ function main() {
     getNews: () => api.news(),
     getServerConfig: () => api.config(),
     getOptionalMods: async (): Promise<OptionalModInfo[]> => {
-      const { optionalMods } = await fetchManifest((await api.config()).packManifestUrl);
+      const { optionalMods } = await fetchManifest(MANIFEST_URL_OVERRIDE || (await api.config()).packManifestUrl);
       const byId = new Map(optionalMods.map((o) => [o.id, o]));
       return optionalMods
         .filter((o) => !o.library)
