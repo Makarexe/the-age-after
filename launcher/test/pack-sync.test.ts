@@ -23,9 +23,10 @@ const fakeFetch = (async (input: string | URL | Request) => {
   return new Response(new Uint8Array(body), { status: 200 });
 }) as typeof fetch;
 
-async function publish(packVersion: string, keepOverrides?: PackManifest['overrides']): Promise<PackManifest> {
+async function publish(packVersion: string, keepOverrides?: PackManifest['overrides'], onlyConfigs?: string[]): Promise<PackManifest> {
   const { manifest, uploads } = await buildPack({
     keepOverrides,
+    onlyConfigs,
     instanceDir: instance,
     config: {
       minecraft: '1.21.1',
@@ -129,6 +130,26 @@ describe('syncPack against tools/pack output', () => {
     const manifest = await publish('2026.10.09-1');
     manifest.optionalMods = [{ id: 'a', name: 'A', description: '', requires: ['zzz'], files: [] }];
     expect(() => validateManifest(JSON.parse(JSON.stringify(manifest)))).toThrow(/zzz/);
+  });
+
+  it('selective configs: an existing install gets only the listed files, a fresh one gets all', async () => {
+    await syncPack({ gameDir, manifest: await publish('2026.10.09-1'), fetchImpl: fakeFetch });
+    await writeFile(path.join(gameDir, 'config', 'sub', 'b.json'), 'player edited b');
+    await writeFile(path.join(gameDir, 'config', 'a.toml'), 'player edited a');
+
+    await writeFile(path.join(instance, 'config', 'a.toml'), 'a=2');
+    await writeFile(path.join(instance, 'config', 'sub', 'b.json'), '{"b":2}');
+    const partial = await publish('2026.10.09-2', undefined, ['config/a.toml']);
+    expect(partial.overrides?.only).toEqual(['config/a.toml']);
+
+    const result = await syncPack({ gameDir, manifest: partial, fetchImpl: fakeFetch });
+    expect(result.overridesApplied).toBe(true);
+    expect(await readFile(path.join(gameDir, 'config', 'a.toml'), 'utf8')).toBe('a=2');
+    expect(await readFile(path.join(gameDir, 'config', 'sub', 'b.json'), 'utf8')).toBe('player edited b');
+
+    const fresh = path.join(root, 'fresh');
+    await syncPack({ gameDir: fresh, manifest: partial, fetchImpl: fakeFetch });
+    expect(await readFile(path.join(fresh, 'config', 'sub', 'b.json'), 'utf8')).toBe('{"b":2}');
   });
 
   it('pack update: replaces changed mods, removes extras, keeps the player options.txt', async () => {

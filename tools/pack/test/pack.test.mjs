@@ -167,6 +167,15 @@ describe('buildPack', () => {
     );
   });
 
+  it('--configs marks which files existing players get and rejects a pattern that matches nothing', async () => {
+    const base = { instanceDir: dir, config, sides: {}, releaseBaseUrl: RELEASE, packVersion: 'x' };
+    const sel = await buildPack({ ...base, onlyConfigs: ['config/jei/**'] });
+    assert.deepEqual(sel.manifest.overrides.only, ['config/jei/**']);
+    assert.ok(sel.warnings.some((w) => w.includes('Выборочные')));
+    assert.equal(sel.manifest.overrides.sha1, result.manifest.overrides.sha1);
+    await assert.rejects(buildPack({ ...base, onlyConfigs: ['config/nope/**'] }), /ни один файл/);
+  });
+
   it('is deterministic', async () => {
     const again = await buildPack({ instanceDir: dir, config, sides: { serverOnly: ['ageafterauth-*.jar'] }, releaseBaseUrl: RELEASE, packVersion: 'x' });
     assert.equal(again.manifest.overrides.sha1, result.manifest.overrides.sha1);

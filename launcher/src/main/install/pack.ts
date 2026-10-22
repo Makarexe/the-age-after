@@ -28,7 +28,8 @@ export interface PackManifest {
   minecraft: string;
   neoforge: string;
   files: PackFile[];
-  overrides: { url: string; sha1: string; size: number } | null;
+  /** `only`: globs; an existing install gets just these files from config.zip, a fresh one gets everything. */
+  overrides: { url: string; sha1: string; size: number; only?: string[] } | null;
   managedDirs: string[];
   firstInstallOnly: string[];
   optionalMods: OptionalMod[];
@@ -81,6 +82,9 @@ export function validateManifest(data: unknown): PackManifest {
   }
   for (const d of [...(m.managedDirs ?? []), ...(m.firstInstallOnly ?? [])]) {
     if (!isSafeRelativePath(d)) throw new UserError(`Манифест сборки содержит неверный путь: ${d}`);
+  }
+  if (m.overrides?.only !== undefined && (!Array.isArray(m.overrides.only) || m.overrides.only.some((g) => typeof g !== 'string' || !g))) {
+    throw new UserError('Манифест сборки содержит неверный список конфигов.');
   }
   // Absent in manifests published before optional mods existed.
   const optionalMods = m.optionalMods ?? [];
@@ -258,7 +262,9 @@ export async function syncPack(opts: SyncOptions): Promise<SyncResult> {
     await downloadFile({ url: o.url, dest: tmp, hash: { algorithm: 'sha1', value: o.sha1 }, fetchImpl }).catch((err) => {
       throw new UserError(`Не удалось скачать настройки сборки (config.zip): ${err instanceof Error ? err.message : err}`);
     });
-    await extractOverrides(tmp, gameDir, manifest.firstInstallOnly);
+    // A selective publish touches only the listed files of an existing install (and a repair restores everything).
+    const only = state.overridesSha1 && !opts.forceOverrides ? o.only : undefined;
+    await extractOverrides(tmp, gameDir, manifest.firstInstallOnly, only);
     await rm(path.dirname(tmp), { recursive: true, force: true });
     state.overridesSha1 = o.sha1;
     overridesApplied = true;
@@ -269,7 +275,23 @@ export async function syncPack(opts: SyncOptions): Promise<SyncResult> {
   return { downloaded: needed.map((f) => f.path), removed, overridesApplied };
 }
 
-export async function extractOverrides(zipFile: string, gameDir: string, firstInstallOnly: string[]): Promise<number> {
+/** `**` matches across folders, `*` inside one name (same rules as tools/pack). */
+export function globToRegExp(pattern: string): RegExp {
+  let re = '';
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i]!;
+    if (c === '*' && pattern[i + 1] === '*') {
+      re += pattern[i + 2] === '/' ? '(?:.*/)?' : '.*';
+      i += pattern[i + 2] === '/' ? 2 : 1;
+    } else if (c === '*') re += '[^/]*';
+    else if (c === '?') re += '[^/]';
+    else re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  }
+  return new RegExp(`^${re}$`, 'i');
+}
+
+export async function extractOverrides(zipFile: string, gameDir: string, firstInstallOnly: string[], only?: string[]): Promise<number> {
+  const onlyRes = only?.map(globToRegExp);
   const keepIfExists = new Set(firstInstallOnly.map(key));
   const zip = await open(zipFile);
   let written = 0;
@@ -278,6 +300,7 @@ export async function extractOverrides(zipFile: string, gameDir: string, firstIn
       const name = entry.fileName;
       if (name.endsWith('/')) continue;
       if (!isSafeRelativePath(name)) throw new UserError(`config.zip содержит неверный путь: ${name}`);
+      if (onlyRes && !onlyRes.some((r) => r.test(name))) continue;
       const dest = path.join(gameDir, ...name.split('/'));
       if (keepIfExists.has(key(name))) {
         const exists = await stat(dest).then(

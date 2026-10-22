@@ -20,6 +20,7 @@ const { values: args } = parseArgs({
     version: { type: 'string' },
     upload: { type: 'boolean', default: false },
     'mods-only': { type: 'boolean', default: false },
+    configs: { type: 'string' },
     'check-urls': { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
@@ -32,6 +33,7 @@ if (args.help || !(args.instance ?? process.env.PACK_INSTANCE)) {
   --instance    папка с minecraftinstance.json (или переменная PACK_INSTANCE)
   --upload      загрузить в GitHub Release через gh (нужен gh auth login)
   --mods-only   обновить только моды: конфиги (config.zip) остаются как в опубликованной сборке
+  --configs     только эти конфиги заменятся у текущих игроков (глобы через запятую, например "config/analogaudio/**")
   --check-urls  проверить, что все ссылки CurseForge отвечают
   --out         куда сложить файлы (по умолчанию tools/pack/out)`);
   process.exit(args.help ? 0 : 1);
@@ -56,6 +58,12 @@ if (args['mods-only'] && !previous) {
   process.exit(1);
 }
 
+if (args.configs && args['mods-only']) {
+  console.error('--configs и --mods-only несовместимы: --mods-only вообще не трогает конфиги.');
+  process.exit(1);
+}
+const onlyConfigs = args.configs?.split(',').map((s) => s.trim()).filter(Boolean);
+
 const packVersion = args.version ?? nextPackVersion(previous?.packVersion);
 const { manifest, uploads, serverMods, warnings } = await buildPack({
   instanceDir,
@@ -64,6 +72,7 @@ const { manifest, uploads, serverMods, warnings } = await buildPack({
   releaseBaseUrl,
   packVersion,
   optionalMods,
+  onlyConfigs,
   keepOverrides: args['mods-only'] ? (previous.overrides ?? null) : undefined,
 });
 

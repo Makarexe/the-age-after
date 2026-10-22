@@ -132,6 +132,7 @@ register → verify → approve → authenticate → join → hasJoined (под�
 - Свои jar и `config.zip` загружаются в GitHub Release `pack-latest` (`gh release upload --clobber`), туда же `manifest.json`.
 - `tools/pack/sides.json` хранит моды только для сервера (не уходят клиентам) и только для клиента.
 - `*.disabled` пропускаются.
+- `--configs "глобы"` — выборочная публикация конфигов: `overrides.only` в манифесте, существующим установкам лаунчер распаковывает из `config.zip` только подходящие файлы, новым — всё.
 - `options.txt` (раскладка клавиш) ставится только при первой установке.
 
 ## 4. launcher — Electron, Windows
