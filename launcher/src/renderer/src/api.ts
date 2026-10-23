@@ -30,7 +30,7 @@ async function call<T>(method: string, ...args: unknown[]): Promise<T> {
 
 const methods = [
   'getState', 'login', 'logout', 'register', 'resendVerification', 'forgotPassword', 'me', 'changePassword',
-  'uploadSkin', 'setSkinModel', 'resetSkin', 'saveBackstory', 'getNews', 'getServerConfig', 'getOptionalMods', 'pingServer', 'play', 'saveSettings', 'chooseGameDir',
+  'uploadSkin', 'setSkinModel', 'resetSkin', 'saveBackstory', 'addBackstoryImage', 'deleteBackstoryImage', 'getNews', 'getServerConfig', 'getOptionalMods', 'pingServer', 'play', 'saveSettings', 'chooseGameDir',
   'openGameDir', 'openLogs', 'repair', 'installUpdate',
 ] as const;
 

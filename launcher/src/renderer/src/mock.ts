@@ -13,7 +13,7 @@ export function installMock() {
     version: '0.1.0',
     totalMemoryMb: 16384,
   };
-  const me: Me = { id: 'a74d', username: 'Makar', email: 'm@example.com', status: 'active', isAdmin: true, skin: null, createdAt: new Date().toISOString(), backstory: '' };
+  const me: Me = { id: 'a74d', username: 'Makar', email: 'm@example.com', status: 'active', isAdmin: false, skin: null, createdAt: new Date().toISOString(), backstory: '', backstoryStatus: 'none', backstoryReview: null, backstoryImages: [] };
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const handlers: Record<string, (...a: never[]) => unknown> = {
     getState: () => state,
@@ -63,7 +63,9 @@ export function installMock() {
     uploadSkin: () => me,
     setSkinModel: () => me,
     resetSkin: () => me,
-    saveBackstory: (text: string) => Object.assign(me, { backstory: text }),
+    saveBackstory: (text: string) => Object.assign(me, { backstory: text, backstoryStatus: text ? 'pending' : 'none' }),
+    addBackstoryImage: () => Object.assign(me, { backstoryImages: [...me.backstoryImages, { id: me.backstoryImages.length + 1, size: 123456 }], backstoryStatus: 'pending' }),
+    deleteBackstoryImage: (id: number) => Object.assign(me, { backstoryImages: me.backstoryImages.filter((i) => i.id !== id) }),
     installUpdate: () => undefined,
   };
   window.launcherBridge = {

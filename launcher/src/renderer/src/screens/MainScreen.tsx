@@ -32,8 +32,13 @@ export function MainScreen({ state, profile, onState, onLogout }: Props) {
     if (isSessionExpired(err)) onLogout();
   };
 
+  // The backstory status changes on the server (admin review): refresh when coming back to the tab.
   useEffect(() => {
     api.me().then(setMe).catch(handleError);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  useEffect(() => {
     return api.onUpdate(setUpdate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -77,7 +82,7 @@ export function MainScreen({ state, profile, onState, onLogout }: Props) {
 
       <main className="content">
         <div hidden={tab !== 'play'}>
-          <PlayTab onError={handleError} />
+          <PlayTab me={me} onError={handleError} />
         </div>
         {tab === 'skin' && <SkinTab me={me} onMe={setMe} onError={handleError} />}
         {tab === 'backstory' && <BackstoryTab me={me} onMe={setMe} onError={handleError} />}

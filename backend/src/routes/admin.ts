@@ -2,7 +2,7 @@ import { desc, eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
-import { auditLog, news, users, type User, type UserStatus } from '../db/schema.js';
+import { auditLog, backstoryImages, news, users, type User, type UserStatus } from '../db/schema.js';
 import { undashed } from '../lib/crypto.js';
 import { badRequest, forbidden, INVALID_CREDENTIALS, notFound, unauthorized } from '../lib/errors.js';
 import { parse } from '../lib/validate.js';
@@ -21,6 +21,8 @@ const newsBody = z.object({
   body: z.string().trim().min(1, 'Нужен текст.').max(5000, 'Текст слишком длинный.'),
 });
 
+const reviewBody = z.object({ decision: z.enum(['approve', 'reject']), reason: z.string().trim().max(500).optional() });
+
 type Action = 'approve' | 'reject' | 'ban' | 'unban' | 'delete';
 
 /** Which statuses each action may start from. */
@@ -32,7 +34,7 @@ const ALLOWED_FROM: Record<Action, UserStatus[]> = {
   delete: ['pending_email', 'pending_approval', 'rejected'],
 };
 
-function userRow(u: User) {
+function userRow(u: User, images: number[] = []) {
   return {
     id: undashed(u.id),
     username: u.username,
@@ -41,6 +43,9 @@ function userRow(u: User) {
     isAdmin: u.isAdmin,
     statusReason: u.statusReason,
     backstory: u.backstory,
+    backstoryStatus: u.backstoryStatus,
+    backstoryReview: u.backstoryReview,
+    images,
     createdAt: u.createdAt.toISOString(),
     emailVerifiedAt: u.emailVerifiedAt?.toISOString() ?? null,
     approvedAt: u.approvedAt?.toISOString() ?? null,
@@ -101,7 +106,8 @@ export function adminRoutes(ctx: AppContext): FastifyPluginAsync {
     app.get('/admin/api/users', async (req) => {
       await requireAdmin(req);
       const rows = await db.select().from(users).orderBy(desc(users.createdAt)).limit(1000);
-      return rows.map(userRow);
+      const imgs = await db.select({ id: backstoryImages.id, userId: backstoryImages.userId }).from(backstoryImages).orderBy(backstoryImages.id);
+      return rows.map((u) => userRow(u, imgs.filter((i) => i.userId === u.id).map((i) => i.id)));
     });
 
     app.post('/admin/api/users/:id/:action', async (req) => {
@@ -143,6 +149,36 @@ export function adminRoutes(ctx: AppContext): FastifyPluginAsync {
       const [updated] = await db.update(users).set({ backstory }).where(eq(users.id, target.id)).returning();
       await audit(admin.id, 'backstory_edit', target);
       return userRow(updated!);
+    });
+
+    app.post('/admin/api/users/:id/backstory-review', async (req) => {
+      const { user: admin } = await requireAdmin(req);
+      const target = await findUserById(db, (req.params as { id: string }).id);
+      if (!target) throw notFound('Пользователь не найден.');
+      const { decision, reason } = parse(reviewBody, req.body);
+      if (target.backstoryStatus === 'none') throw badRequest('Игрок ещё не заполнил квенту.');
+      if (decision === 'reject' && !reason) throw badRequest('Укажите причину отказа: игрок увидит её в лаунчере.');
+      const [updated] = await db
+        .update(users)
+        .set(decision === 'approve' ? { backstoryStatus: 'approved', backstoryReview: null } : { backstoryStatus: 'rejected', backstoryReview: reason })
+        .where(eq(users.id, target.id))
+        .returning();
+      await audit(admin.id, decision === 'approve' ? 'backstory_approve' : 'backstory_reject', target, reason ? { reason } : {});
+      const imgs = await db.select({ id: backstoryImages.id }).from(backstoryImages).where(eq(backstoryImages.userId, target.id));
+      return userRow(updated!, imgs.map((i) => i.id));
+    });
+
+    app.get('/admin/api/images/:id', async (req, reply) => {
+      await requireAdmin(req);
+      const id = Number((req.params as { id: string }).id);
+      const [img] = Number.isInteger(id) ? await db.select().from(backstoryImages).where(eq(backstoryImages.id, id)).limit(1) : [];
+      if (!img) throw notFound('Изображение не найдено.');
+      return reply
+        .header('Content-Type', img.mime)
+        .header('X-Content-Type-Options', 'nosniff')
+        .header('Content-Security-Policy', "default-src 'none'")
+        .header('Cache-Control', 'private, max-age=3600')
+        .send(img.data);
     });
 
     app.get('/admin/api/news', async (req) => {

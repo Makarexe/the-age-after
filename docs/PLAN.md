@@ -76,7 +76,7 @@ API по спецификации authlib-injector (Yggdrasil): https://github.c
 - `GET me`, `POST change-password`;
 - `POST skin` → `{png base64, model: classic|slim}`, проверка PNG 64×64 или 64×32;
 - `GET news`.
-- `PUT backstory` → `{backstory ≤10000}`: квента персонажа (колонка `users.backstory`); отдаётся в `GET me`. Админка: у игрока кнопка «Квента» (просмотр и правка), `PUT /admin/api/users/:id/backstory`, пишется в `audit_log`.
+- `PUT backstory` → `{backstory ≤10000}`: квента персонажа (колонка `users.backstory`); отдаётся в `GET me`. Квента одобряется админом: `users.backstory_status` (none/pending/approved/rejected), без `approved` не работает `join`/`hasJoined` (админы освобождены), правка игроком возвращает в `pending`; до 5 фото (png/jpg/webp ≤2 МБ, bytea в БД). Админка: у игрока кнопка «Квента» (просмотр и правка), `PUT /admin/api/users/:id/backstory`, пишется в `audit_log`.
 
 Жизненный цикл аккаунта: `pending_email` → (ссылка из письма) → `pending_approval` → (админ) → `active`. Из любого состояния возможны `rejected` и `banned`. Если SMTP не настроен, письма пишутся в лог, а шаг подтверждения почты пропускается (сразу `pending_approval`).
 

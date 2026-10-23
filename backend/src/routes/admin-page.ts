@@ -41,8 +41,9 @@ h3{margin:0 0 12px}.scroll{overflow-x:auto}.pre{white-space:pre-wrap}
 <script>
 (() => {
   const STATUS = {pending_email:'ждёт почту',pending_approval:'ждёт одобрения',active:'активен',rejected:'отклонён',banned:'забанен'};
+  const BS = {none:'квента: нет',pending:'квента: на рассмотрении',approved:'квента: одобрена',rejected:'квента: отклонена'};
   const ACTION = {approve:'Одобрить',reject:'Отклонить',ban:'Бан',unban:'Разбан',delete:'Удалить'};
-  const AUDIT = {approve:'одобрил',reject:'отклонил',ban:'забанил',unban:'разбанил',delete:'удалил',news_create:'добавил новость',news_delete:'удалил новость',backstory_edit:'изменил квенту'};
+  const AUDIT = {approve:'одобрил',reject:'отклонил',ban:'забанил',unban:'разбанил',delete:'удалил',news_create:'добавил новость',news_delete:'удалил новость',backstory_edit:'изменил квенту',backstory_approve:'одобрил квенту',backstory_reject:'отклонил квенту'};
   const ALLOWED = {approve:['pending_email','pending_approval','rejected'],reject:['pending_email','pending_approval'],ban:['pending_email','pending_approval','active','rejected'],unban:['banned'],delete:['pending_email','pending_approval','rejected']};
   let token = sessionStorage.getItem('adminToken');
   let tab = 'pending';
@@ -78,16 +79,36 @@ h3{margin:0 0 12px}.scroll{overflow-x:auto}.pre{white-space:pre-wrap}
     try { await api('POST', '/users/' + u.id + '/' + action, { reason: reason || undefined }); render(); } catch (err) { alert(err.message); }
   }
 
+  async function thumb(id) {
+    const img = el('img', { style: 'height:90px;margin:4px;border-radius:6px;border:1px solid var(--border);cursor:zoom-in', alt: 'Фото к квенте' });
+    try {
+      const res = await fetch('/admin/api/images/' + id, { headers: { Authorization: 'Bearer ' + token } });
+      if (!res.ok) throw new Error();
+      const url = URL.createObjectURL(await res.blob());
+      img.src = url; img.onclick = () => window.open(url, '_blank');
+    } catch { img.alt = 'не загрузилось'; }
+    return img;
+  }
+  async function review(u, decision) {
+    let reason;
+    if (decision === 'reject') { reason = prompt('Причина отказа (её увидит игрок):'); if (!reason) return; }
+    try { await api('POST', '/users/' + u.id + '/backstory-review', { decision, reason }); render(); } catch (err) { alert(err.message); }
+  }
+
   function usersTable(list, empty) {
     if (!list.length) return el('p', { class: 'muted', textContent: empty });
     const rows = list.flatMap((u) => {
       const ta = el('textarea', { value: u.backstory, maxLength: 10000 });
       const save = el('button', { class: 'a p', textContent: 'Сохранить квенту', onclick: async () => { try { u.backstory = (await api('PUT', '/users/' + u.id + '/backstory', { backstory: ta.value })).backstory; alert('Сохранено.'); } catch (err) { alert(err.message); } } });
-      const detail = el('tr', { hidden: true }, el('td', { colSpan: 4 }, el('div', { class: 'muted', textContent: 'Квента ' + u.username + (u.backstory ? '' : ' (пока пусто)') }), ta, save));
-      const toggle = el('button', { class: 'a', textContent: u.backstory ? 'Квента' : 'Квента (пусто)', onclick: () => { detail.hidden = !detail.hidden; } });
+      const pics = el('div', {}); let loaded = false;
+      const rev = u.backstoryStatus === 'none' ? null : el('div', { class: 'acts' },
+        el('button', { class: 'a p', textContent: 'Одобрить квенту', disabled: u.backstoryStatus === 'approved', onclick: () => review(u, 'approve') }),
+        el('button', { class: 'a d', textContent: 'Отклонить квенту', onclick: () => review(u, 'reject') }));
+      const detail = el('tr', { hidden: true }, el('td', { colSpan: 4 }, el('div', { class: 'muted', textContent: 'Квента ' + u.username + ' — ' + BS[u.backstoryStatus] + (u.backstoryReview ? ' (' + u.backstoryReview + ')' : '') }), ta, save, pics, rev));
+      const toggle = el('button', { class: 'a', textContent: u.backstory ? 'Квента' : 'Квента (пусто)', onclick: () => { detail.hidden = !detail.hidden; if (!detail.hidden && !loaded) { loaded = true; for (const id of u.images) thumb(id).then((i) => pics.append(i)); } } });
       const main = el('tr', {},
         el('td', {}, el('div', { textContent: u.username + (u.isAdmin ? ' ★' : '') }), el('div', { class: 'muted', textContent: u.email })),
-        el('td', {}, el('span', { class: 'st ' + u.status, textContent: STATUS[u.status] || u.status }), u.statusReason ? el('div', { class: 'muted', textContent: u.statusReason }) : null),
+        el('td', {}, el('span', { class: 'st ' + u.status, textContent: STATUS[u.status] || u.status }), u.statusReason ? el('div', { class: 'muted', textContent: u.statusReason }) : null, el('div', { class: 'muted', textContent: BS[u.backstoryStatus] })),
         el('td', { class: 'muted', textContent: fmt(u.createdAt) }),
         el('td', {}, el('div', { class: 'acts' }, toggle, ...Object.keys(ACTION).filter((a) => ALLOWED[a].includes(u.status) && !u.isAdmin).map((a) =>
           el('button', { class: 'a' + (a === 'approve' || a === 'unban' ? ' p' : a === 'ban' || a === 'delete' ? ' d' : ''), textContent: ACTION[a], onclick: () => act(u, a) })))),

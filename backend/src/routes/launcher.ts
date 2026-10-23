@@ -3,8 +3,9 @@ import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { news, skins, users, type User } from '../db/schema.js';
+import { addImage, deleteImage, imageList, resubmit } from '../services/backstory.js';
 import { offlineUuid, sha256Hex, undashed } from '../lib/crypto.js';
-import { badRequest, conflict, forbidden, unauthorized } from '../lib/errors.js';
+import { badRequest, conflict, forbidden, notFound, unauthorized } from '../lib/errors.js';
 import { isValidSkinSize, readPngSize } from '../lib/png.js';
 import { parse } from '../lib/validate.js';
 import { resetPasswordMail } from '../services/mails.js';
@@ -33,6 +34,7 @@ const loginSchema = z.object({ login: z.string().trim().min(1, 'Укажите �
 const registerBody = z.object({ username: usernameSchema, email: emailSchema, password: passwordSchema });
 const resetBody = z.object({ token: z.string().min(1).max(128), password: passwordSchema });
 const changePasswordBody = z.object({ oldPassword: z.string().min(1).max(256), newPassword: passwordSchema });
+const imageBody = z.object({ data: z.string({ error: 'Нет файла.' }).min(1).max(3 * 1024 * 1024) });
 const skinBody = z.object({
   /** Without png only the model of the current skin changes. */
   png: z.string().min(1, 'Нет файла скина.').max(MAX_SKIN_BYTES * 2).optional(),
@@ -43,7 +45,7 @@ export const backstorySchema = z.object({
   backstory: z.string({ error: 'Нет текста квенты.' }).max(10000, 'Квента слишком длинная (до 10 000 символов).'),
 });
 
-export function meResponse(user: User, publicUrl: string) {
+export function meResponse(user: User, publicUrl: string, images: { id: number; size: number }[]) {
   return {
     id: undashed(user.id),
     username: user.username,
@@ -53,6 +55,9 @@ export function meResponse(user: User, publicUrl: string) {
     skin: user.skinSha256 ? { url: textureUrl(publicUrl, user.skinSha256), model: user.skinModel } : null,
     createdAt: user.createdAt.toISOString(),
     backstory: user.backstory,
+    backstoryStatus: user.backstoryStatus,
+    backstoryReview: user.backstoryReview,
+    backstoryImages: images,
   };
 }
 
@@ -75,6 +80,8 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
     if (!session) throw unauthorized();
     return session;
   }
+
+  const meFull = async (user: User) => meResponse(user, config.publicUrl, await imageList(db, user.id));
 
   return async (app) => {
     app.get('/config', async () => ({
@@ -161,7 +168,7 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
 
     app.get('/me', async (req) => {
       const { user } = await requireSession(req);
-      return meResponse(user, config.publicUrl);
+      return meFull(user);
     });
 
     app.post(
@@ -185,8 +192,24 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
     app.put('/backstory', async (req) => {
       const session = await requireSession(req);
       const { backstory } = parse(backstorySchema, req.body);
+      if (backstory === session.user.backstory) return meFull(session.user);
       const [user] = await db.update(users).set({ backstory }).where(eq(users.id, session.user.id)).returning();
-      return meResponse(user!, config.publicUrl);
+      return meFull(await resubmit(db, user!));
+    });
+
+    // Base64 in JSON: 2 MB of image is ~2.7 MB of text, above the app-wide body limit.
+    app.post('/backstory/images', { bodyLimit: 3 * 1024 * 1024 }, async (req) => {
+      const session = await requireSession(req);
+      const { data } = parse(imageBody, req.body);
+      await addImage(db, session.user, data);
+      return meFull(await resubmit(db, session.user));
+    });
+
+    app.delete('/backstory/images/:id', async (req) => {
+      const session = await requireSession(req);
+      const id = Number((req.params as { id: string }).id);
+      if (!Number.isInteger(id) || !(await deleteImage(db, session.user, id))) throw notFound('Изображение не найдено.');
+      return meFull(await resubmit(db, session.user));
     });
 
     app.post('/skin', async (req) => {
@@ -195,7 +218,7 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
       if (body.png === undefined) {
         if (!session.user.skinSha256) throw badRequest('Сначала загрузите скин.');
         const [user] = await db.update(users).set({ skinModel: body.model }).where(eq(users.id, session.user.id)).returning();
-        return meResponse(user!, config.publicUrl);
+        return meFull(user!);
       }
       const png = Buffer.from(body.png.replace(/^data:image\/png;base64,/, ''), 'base64');
       if (png.length > MAX_SKIN_BYTES) throw badRequest('Файл скина слишком большой.');
@@ -210,7 +233,7 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
         .set({ skinSha256: sha256, skinModel: body.model })
         .where(eq(users.id, session.user.id))
         .returning();
-      return meResponse(user!, config.publicUrl);
+      return meFull(user!);
     });
 
     app.delete('/skin', async (req) => {
@@ -220,7 +243,7 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
         .set({ skinSha256: null, skinModel: 'classic' })
         .where(eq(users.id, session.user.id))
         .returning();
-      return meResponse(user!, config.publicUrl);
+      return meFull(user!);
     });
 
     app.get('/news', async () => {
