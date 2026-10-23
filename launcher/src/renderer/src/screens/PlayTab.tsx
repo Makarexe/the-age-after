@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import type { GameState, NewsItem, Progress, ServerConfig, ServerStatus } from '../../../shared/types';
+import type { GameState, Me, NewsItem, Progress, ServerConfig, ServerStatus } from '../../../shared/types';
+import { playBlockReason } from '../../../shared/backstory';
 import { api, errorText } from '../api';
 
 const dateFmt = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
 
-export function PlayTab({ onError }: { onError: (err: unknown) => void }) {
+export function PlayTab({ me, onError }: { me: Me | null; onError: (err: unknown) => void }) {
   const [config, setConfig] = useState<ServerConfig | null>(null);
   const [status, setStatus] = useState<ServerStatus | null>(null);
   const [news, setNews] = useState<NewsItem[] | null>(null);
@@ -29,6 +30,7 @@ export function PlayTab({ onError }: { onError: (err: unknown) => void }) {
     };
   }, []);
 
+  const block = me ? playBlockReason(me) : null;
   const busy = game.state === 'preparing' || game.state === 'running';
   const play = async () => {
     setGame({ state: 'preparing' });
@@ -53,9 +55,10 @@ export function PlayTab({ onError }: { onError: (err: unknown) => void }) {
         {status?.motd && <p className="motd">{status.motd}</p>}
 
         <div className="play-area">
-          <button className="btn btn-play" disabled={busy} onClick={() => void play()}>
+          <button className="btn btn-play" disabled={busy || block !== null} onClick={() => void play()}>
             {game.state === 'running' ? 'Игра запущена' : game.state === 'preparing' ? 'Готовим…' : 'Играть'}
           </button>
+          {block && <p className="form-error">{block}</p>}
           {game.state === 'preparing' && <ProgressView progress={progress} />}
           {game.state === 'running' && <p className="muted">Удачной игры! Лаунчер можно свернуть.</p>}
           {game.state === 'error' && <p className="form-error pre">{game.message}</p>}

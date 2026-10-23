@@ -1,3 +1,4 @@
+import { playBlock } from '../services/backstory.js';
 import { sql } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
@@ -153,6 +154,9 @@ export function yggdrasilRoutes(ctx: AppContext): FastifyPluginAsync {
       if (!session || undashed(body.selectedProfile) !== undashed(session.user.id)) {
         throw forbidden(INVALID_TOKEN);
       }
+      // The client shows this text on the disconnect screen.
+      const block = playBlock(session.user);
+      if (block) throw forbidden(block);
       joins.add(body.serverId, session.user.id, session.user.username, req.ip);
       return reply.status(204).send();
     });
@@ -163,7 +167,7 @@ export function yggdrasilRoutes(ctx: AppContext): FastifyPluginAsync {
       const join = joins.get(q.serverId);
       if (!join || join.username.toLowerCase() !== q.username.toLowerCase()) return reply.status(204).send();
       const user = await findUserById(db, join.userId);
-      if (!user || user.status !== 'active') return reply.status(204).send();
+      if (!user || user.status !== 'active' || playBlock(user)) return reply.status(204).send();
       return fullProfile(user, { publicUrl: config.publicUrl, signer, signed: true });
     });
 

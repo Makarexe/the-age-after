@@ -97,6 +97,28 @@ describe('full account cycle', () => {
     expect(res.json().error).toBe('ForbiddenOperationException');
   });
 
+  it('join is refused until the admin approves the backstory', async () => {
+    const attempt = () =>
+      t.app.inject({
+        method: 'POST',
+        url: '/sessionserver/session/minecraft/join',
+        payload: { accessToken, selectedProfile: STEVE_ID, serverId: 'server-hash-0' },
+      });
+    expect((await attempt()).json().errorMessage).toContain('Заполните квенту');
+
+    const put = await t.app.inject({ method: 'PUT', url: '/launcher/backstory', headers: { authorization: `Bearer ${accessToken}` }, payload: { backstory: 'Странник.' } });
+    expect(put.json().backstoryStatus).toBe('pending');
+    expect((await attempt()).json().errorMessage).toContain('ждёт одобрения');
+
+    const ok = await t.app.inject({
+      method: 'POST',
+      url: `/admin/api/users/${STEVE_ID}/backstory-review`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { decision: 'approve' },
+    });
+    expect(ok.json().backstoryStatus).toBe('approved');
+  });
+
   it('join → hasJoined returns a profile with signed textures', async () => {
     const join = await t.app.inject({
       method: 'POST',

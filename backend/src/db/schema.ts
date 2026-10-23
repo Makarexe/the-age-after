@@ -31,6 +31,9 @@ export const userStatus = pgEnum('user_status', [
 ]);
 export type UserStatus = (typeof userStatus.enumValues)[number];
 
+export const backstoryStatus = pgEnum('backstory_status', ['none', 'pending', 'approved', 'rejected']);
+export type BackstoryStatus = (typeof backstoryStatus.enumValues)[number];
+
 export const skinModel = pgEnum('skin_model', ['classic', 'slim']);
 export type SkinModel = (typeof skinModel.enumValues)[number];
 
@@ -58,6 +61,10 @@ export const users = pgTable(
     statusReason: text('status_reason'),
     /** Character backstory; written by the player in the launcher, readable and editable by admins. */
     backstory: text('backstory').notNull().default(''),
+    /** Players may join the server only with an approved backstory (admins are exempt). */
+    backstoryStatus: backstoryStatus('backstory_status').notNull().default('none'),
+    /** Why an admin rejected the backstory; shown to the player. */
+    backstoryReview: text('backstory_review'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
@@ -67,6 +74,20 @@ export const users = pgTable(
     uniqueIndex('users_email_lower_idx').on(sql`lower(${t.email})`),
     index('users_status_idx').on(t.status),
   ],
+);
+
+export const backstoryImages = pgTable(
+  'backstory_images',
+  {
+    id: serial('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    mime: text('mime').notNull(),
+    data: bytea('data').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('backstory_images_user_idx').on(t.userId)],
 );
 
 export const accessTokens = pgTable(

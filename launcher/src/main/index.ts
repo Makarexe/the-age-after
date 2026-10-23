@@ -1,6 +1,7 @@
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell, type IpcMainInvokeEvent } from 'electron';
+import { playBlockReason } from '../shared/backstory';
 import { GAME_DIR_NAME, IPC } from '../shared/constants';
 import type { GameState, IpcResult, LauncherState, OptionalModInfo, Progress, Settings, UpdateState } from '../shared/types';
 import { ApiClient } from './api';
@@ -123,6 +124,8 @@ function main() {
     setSkinModel: (model: 'classic' | 'slim') => authed((t) => api.setSkinModel(t, model)),
     resetSkin: () => authed((t) => api.resetSkin(t)),
     saveBackstory: (backstory: string) => authed((t) => api.saveBackstory(t, String(backstory))),
+    addBackstoryImage: (data: string) => authed((t) => api.addBackstoryImage(t, String(data))),
+    deleteBackstoryImage: (id: number) => authed((t) => api.deleteBackstoryImage(t, Number(id))),
     getNews: () => api.news(),
     getServerConfig: () => api.config(),
     getOptionalMods: async (): Promise<OptionalModInfo[]> => {
@@ -143,6 +146,9 @@ function main() {
     },
     pingServer: async () => pingServer((await api.config()).serverAddress),
     play: async () => {
+      // Same rule as the server's: the button is also locked in the UI, but this can't be skipped.
+      const block = playBlockReason(await authed((t) => api.me(t)));
+      if (block) throw new UserError(block);
       const current = settings.get();
       await play({
         settings: current,

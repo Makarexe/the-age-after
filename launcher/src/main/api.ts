@@ -122,6 +122,14 @@ export class ApiClient {
     return this.request<Me>('PUT', '/launcher/backstory', { token, body: { backstory } });
   }
 
+  addBackstoryImage(token: string, data: string) {
+    return this.request<Me>('POST', '/launcher/backstory/images', { token, body: { data } });
+  }
+
+  deleteBackstoryImage(token: string, id: number) {
+    return this.request<Me>('DELETE', `/launcher/backstory/images/${id}`, { token });
+  }
+
   news() {
     return this.request<NewsItem[]>('GET', '/launcher/news');
   }
