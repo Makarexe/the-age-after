@@ -94,3 +94,40 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run release
+
+  installer-mac:
+    # Unsigned macOS build (.dmg for Apple Silicon and Intel). Runs after the Windows job, which creates the release.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: installer
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    env:
+      PUBLISH: ${{ startsWith(github.ref, 'refs/tags/v') || (inputs.publish && github.ref == 'refs/heads/main') }}
+      MAIN_VITE_API_ROOT: ${{ vars.LAUNCHER_API_ROOT }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    defaults:
+      run:
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: launcher/package-lock.json
+      - run: npm ci
+      - name: Build dmg
+        if: env.PUBLISH != 'true'
+        run: npm run dist:mac
+      - if: env.PUBLISH != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-mac
+          path: launcher/release/*.dmg
+          if-no-files-found: error
+      - name: Build and publish
+        if: env.PUBLISH == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release:mac

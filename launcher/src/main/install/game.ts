@@ -101,10 +101,13 @@ export interface JavaPaths {
   javaw: string;
 }
 
-export function javaPaths(gameDir: string, component: string): JavaPaths {
-  const home = path.join(gameDir, 'runtime', component);
-  const win = process.platform === 'win32';
+export function javaPaths(gameDir: string, component: string, platform: NodeJS.Platform = process.platform): JavaPaths & { root: string } {
+  const root = path.join(gameDir, 'runtime', component);
+  // Mojang's macOS runtime is a bundle: the files start at jre.bundle/Contents/Home.
+  const home = platform === 'darwin' ? path.join(root, 'jre.bundle', 'Contents', 'Home') : root;
+  const win = platform === 'win32';
   return {
+    root,
     java: path.join(home, 'bin', win ? 'java.exe' : 'java'),
     javaw: path.join(home, 'bin', win ? 'javaw.exe' : 'java'),
   };
@@ -117,7 +120,7 @@ export async function ensureJava(gameDir: string, component: string, onProgress:
   onProgress(null, 'Список файлов Java');
   try {
     const manifest = await retrying('java manifest', () => fetchJavaManifest(component), onProgress);
-    const destination = path.dirname(path.dirname(paths.java));
+    const destination = paths.root;
     await retrying('java install', () => runTask(installJavaRuntimeTask({ destination, manifest, dispatcher: downloadAgent() }), onProgress), onProgress);
   } catch (err) {
     log.error('java install failed', err);

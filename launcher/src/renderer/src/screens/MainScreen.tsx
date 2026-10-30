@@ -78,6 +78,14 @@ export function MainScreen({ state, profile, onState, onLogout }: Props) {
           </button>
         </div>
       )}
+      {update.state === 'manual' && (
+        <div className="banner">
+          Вышла новая версия лаунчера {update.version}.
+          <button className="btn btn-small btn-primary" onClick={() => void api.installUpdate()}>
+            Скачать
+          </button>
+        </div>
+      )}
       {update.state === 'downloading' && <div className="banner muted">Скачиваем обновление лаунчера… {update.percent}%</div>}
 
       <main className="content">

@@ -18,6 +18,14 @@ win:
       arch: [x64]
   icon: build/icon.png
   artifactName: TheAgeAfter-Setup-${version}.${ext}
+mac:
+  # Unsigned and not notarized (no Apple Developer account): the player opens it once via right click → Open.
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.games
+  identity: null
+  artifactName: TheAgeAfter-${version}-mac-${arch}.${ext}
 nsis:
   # One click, per user: no admin rights needed, and updates install silently.
   oneClick: true

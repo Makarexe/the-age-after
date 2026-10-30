@@ -16,6 +16,8 @@
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
     "test": "vitest run",
     "dist": "electron-vite build && electron-builder --win nsis --x64 --publish never",
+    "dist:mac": "electron-vite build && electron-builder --mac --publish never",
+    "release:mac": "electron-vite build && electron-builder --mac --publish always",
     "release": "electron-vite build && electron-builder --win nsis --x64 --publish always"
   },
   "dependencies": {
