@@ -126,6 +126,14 @@ describe('syncPack against tools/pack output', () => {
     expect(disabled.removed.sort()).toEqual(['mods/lib.jar', 'mods/opt.jar']);
   });
 
+  it('refuses a NeoForge installer entry without https or a sha1', async () => {
+    const manifest = await publish('2026.10.09-1');
+    const bad = { ...JSON.parse(JSON.stringify(manifest)), neoforgeInstaller: { url: 'http://x/i.jar', sha1: 'zz', size: 1 } };
+    expect(() => validateManifest(bad)).toThrow(/NeoForge/);
+    const ok = { ...bad, neoforgeInstaller: { url: 'https://x/i.jar', sha1: 'a'.repeat(40), size: 1 } };
+    expect(validateManifest(ok).neoforgeInstaller?.url).toBe('https://x/i.jar');
+  });
+
   it('refuses an optional mod that requires an unknown id', async () => {
     const manifest = await publish('2026.10.09-1');
     manifest.optionalMods = [{ id: 'a', name: 'A', description: '', requires: ['zzz'], files: [] }];

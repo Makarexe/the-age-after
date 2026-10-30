@@ -12,9 +12,10 @@ import type { Task } from '@xmcl/task';
 import { MINECRAFT_VERSION, NEOFORGE_VERSION } from '../../shared/constants';
 import { UserError } from '../errors';
 import { log } from '../log';
+import { downloadFile } from './download';
 import { fetchJavaManifest } from './java-manifest';
 import { withRetries } from './retry';
-import { assetHosts, describeError, downloadAgent, libraryUrls } from './net';
+import { assetHosts, BMCLAPI, describeError, downloadAgent, libraryUrls } from './net';
 
 export type StepProgress = (fraction: number | null, detail?: string) => void;
 
@@ -137,12 +138,23 @@ export async function ensureNeoForge(
   java: string,
   onProgress: StepProgress,
   version: string = NEOFORGE_VERSION,
+  installer?: { url: string; sha1: string },
 ): Promise<string> {
   const folder = MinecraftFolder.from(gameDir);
   // The marker stores the version id the installer produced.
   const installedId = await readFile(path.join(gameDir, MARKERS_DIR, 'neoforge'), 'utf8').catch(() => '');
   const [markerVersion, markerId] = installedId.split('|');
   if (markerVersion === version && markerId && existsSync(folder.getVersionJson(markerId))) return markerId;
+  if (installer) {
+    // The installer jar is the one file xmcl can't re-verify; get it ourselves (our copy first, then the
+    // official maven and the mirror, all checked against the same sha1). xmcl then finds a valid file and skips it.
+    const rel = `net/neoforged/neoforge/${version}/neoforge-${version}-installer.jar`;
+    await downloadFile({
+      url: [installer.url, `https://maven.neoforged.net/releases/${rel}`, `${BMCLAPI}/maven/${rel}`],
+      dest: folder.getLibraryByPath(rel),
+      hash: { algorithm: 'sha1', value: installer.sha1 },
+    }).catch((err) => log.warn('neoforge installer pre-download failed, xmcl will try', err));
+  }
   let id: string;
   try {
     id = await retrying(

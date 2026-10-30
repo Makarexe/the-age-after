@@ -33,6 +33,8 @@ export interface PackManifest {
   managedDirs: string[];
   firstInstallOnly: string[];
   optionalMods: OptionalMod[];
+  /** Our copy of the NeoForge installer (GitHub Release): maven.neoforged.net is unreachable for some players. */
+  neoforgeInstaller?: { url: string; sha1: string; size: number };
 }
 
 /** CurseForge serves the same files from both hosts; when one answers 404, the other often has the file. */
@@ -85,6 +87,10 @@ export function validateManifest(data: unknown): PackManifest {
   }
   if (m.overrides?.only !== undefined && (!Array.isArray(m.overrides.only) || m.overrides.only.some((g) => typeof g !== 'string' || !g))) {
     throw new UserError('Манифест сборки содержит неверный список конфигов.');
+  }
+  const ni = m.neoforgeInstaller;
+  if (ni && (!/^https:\/\//.test(ni.url) || !/^[0-9a-f]{40}$/i.test(ni.sha1))) {
+    throw new UserError('Манифест сборки содержит неверный установщик NeoForge.');
   }
   // Absent in manifests published before optional mods existed.
   const optionalMods = m.optionalMods ?? [];

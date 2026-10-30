@@ -92,7 +92,7 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
 
   const { javaComponent } = await ensureMinecraft(gameDir, step('minecraft', 'Устанавливаем Minecraft'));
   const java = await ensureJava(gameDir, javaComponent, step('java', 'Устанавливаем Java'));
-  const versionId = await ensureNeoForge(gameDir, java.java, step('neoforge', 'Устанавливаем NeoForge'), manifest.neoforge);
+  const versionId = await ensureNeoForge(gameDir, java.java, step('neoforge', 'Устанавливаем NeoForge'), manifest.neoforge, manifest.neoforgeInstaller);
 
   step('authlib', 'Проверяем authlib-injector')(null);
   const authlibJar = await ensureAuthlibInjector(gameDir);

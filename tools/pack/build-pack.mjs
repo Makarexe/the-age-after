@@ -9,7 +9,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { buildPack, diffManifests, nextPackVersion } from './lib/pack.mjs';
+import { buildPack, diffManifests, nextPackVersion, sha1 } from './lib/pack.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -75,6 +75,18 @@ const { manifest, uploads, serverMods, warnings } = await buildPack({
   onlyConfigs,
   keepOverrides: args['mods-only'] ? (previous.overrides ?? null) : undefined,
 });
+
+// Our own copy of the NeoForge installer next to the manifest: the official maven is unreachable for some players.
+const installerName = `neoforge-${config.neoforge}-installer.jar`;
+if (previous?.neoforgeInstaller?.url.endsWith(`/${installerName}`)) {
+  manifest.neoforgeInstaller = previous.neoforgeInstaller;
+} else {
+  const res = await fetch(`https://maven.neoforged.net/releases/net/neoforged/neoforge/${config.neoforge}/${installerName}`);
+  if (!res.ok) throw new Error(`Не удалось скачать установщик NeoForge: HTTP ${res.status}`);
+  const data = Buffer.from(await res.arrayBuffer());
+  uploads.push({ name: installerName, data });
+  manifest.neoforgeInstaller = { url: `${releaseBaseUrl}/${installerName}`, sha1: sha1(data), size: data.length };
+}
 
 if (args['check-urls']) {
   const external = manifest.files.filter((f) => !f.url.startsWith(releaseBaseUrl));
