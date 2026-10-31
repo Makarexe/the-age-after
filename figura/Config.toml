@@ -28,3 +28,7 @@ customText = """
 [limitations]
 maxAvatarSize = 100 # KB, as on the official cloud
 maxAvatars = 10
+## Sculptor closes a player's connection with "Re-auth" (code 4000) when that player made no API request for this
+## many seconds (default 360). Figura then clears and reloads every avatar around the player. A player who just
+## stands still hits that every few minutes, so the limit is a day: only a dead connection ends the session.
+heartbeatTimeout = 86400
