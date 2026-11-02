@@ -10,6 +10,7 @@ import { clearMarkers } from './install/game';
 import { fetchManifest, optionalFiles, STATE_FILE, type PackManifest } from './install/pack';
 import { initLog, log } from './log';
 import { pingServer } from './ping';
+import { FIX_PACK } from './resourcepack';
 import { isGameRunning, play } from './play';
 import { SessionStore } from './session';
 import { SettingsStore, totalMemoryMb } from './settings';
@@ -158,6 +159,7 @@ function main() {
         forceOverrides,
         emitProgress: (p: Progress) => send(IPC.progress, p),
         emitGameState: (s: GameState) => send(IPC.gameState, s),
+        fixPackPath: app.isPackaged ? path.join(process.resourcesPath, FIX_PACK) : path.join(app.getAppPath(), 'resources', FIX_PACK),
         onWindowReady: () => {
           if (settings.get().hideWhilePlaying) win?.hide();
         },

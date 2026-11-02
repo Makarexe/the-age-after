@@ -7,6 +7,9 @@ directories:
 files:
   - out/**
   - package.json
+extraResources:
+  - from: resources/vanilla-blockstates-fix.zip
+    to: vanilla-blockstates-fix.zip
 asar: true
 npmRebuild: false
 win:
