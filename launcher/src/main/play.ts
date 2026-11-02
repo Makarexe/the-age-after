@@ -6,6 +6,7 @@ import type { GameState, Progress, ProgressStage, ServerConfig, Settings } from 
 import type { ApiClient } from './api';
 import { sessionExpired, UserError } from './errors';
 import { ensureFiguraServer } from './figura';
+import { ensureFixPack } from './resourcepack';
 import { ensureAuthlibInjector } from './install/authlib';
 import { ensureJava, ensureMinecraft, ensureNeoForge } from './install/game';
 import { fetchManifest, syncPack } from './install/pack';
@@ -32,6 +33,8 @@ export interface PlayDeps {
   forceOverrides: boolean;
   emitProgress: (p: Progress) => void;
   emitGameState: (s: GameState) => void;
+  /** Our bundled resource pack (see resourcepack.ts). */
+  fixPackPath: string;
   onWindowReady: () => void;
   onExit: () => void;
 }
@@ -116,6 +119,8 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
       log.warn('could not update servers.dat', err),
     );
   }
+  // After syncPack too: options.txt (first install) may have just been written.
+  await ensureFixPack(gameDir, deps.fixPackPath).catch((err) => log.warn('could not enable the blockstates fix pack', err));
   if (config.figuraServer) {
     // After syncPack: the pack's config.zip may have just reset Figura's settings.
     await ensureFiguraServer(gameDir, config.figuraServer).catch((err) => log.warn('could not update figura.json', err));
