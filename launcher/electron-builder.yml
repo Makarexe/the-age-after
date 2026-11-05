@@ -26,6 +26,18 @@ mac:
   category: public.app-category.games
   identity: null
   artifactName: TheAgeAfter-${version}-mac-${arch}.${ext}
+linux:
+  # AppImage updates itself (electron-updater); the deb is for apt-based distros and updates by hand.
+  # x64 only: Minecraft 1.21.1 has no LWJGL natives and Mojang no Java runtime for Linux ARM.
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  category: Game
+  maintainer: Makarexe <makarexe@users.noreply.github.com>
+  icon: build/icon.png
+  artifactName: TheAgeAfter-${version}-linux-${arch}.${ext}
 nsis:
   # One click, per user: no admin rights needed, and updates install silently.
   oneClick: true

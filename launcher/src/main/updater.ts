@@ -2,6 +2,7 @@ import { app, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import type { UpdateState } from '../shared/types';
 import { log } from './log';
+import { needsManualUpdate } from './platform';
 
 /** Launcher updates from the public GitHub Releases (electron-builder `publish`). */
 const RELEASES = 'https://github.com/Makarexe/the-age-after/releases/latest';
@@ -26,8 +27,8 @@ async function checkManually(emit: (u: UpdateState) => void): Promise<void> {
 
 export function initUpdater(emit: (u: UpdateState) => void): void {
   if (!app.isPackaged) return;
-  if (process.platform === 'darwin') {
-    // Squirrel.Mac refuses unsigned updates, so autoUpdater can't be used here.
+  if (needsManualUpdate()) {
+    // Squirrel.Mac refuses unsigned updates and a deb can't replace itself: the player downloads the new version.
     const check = () => checkManually(emit).catch((err) => log.warn('update check failed', err));
     void check();
     setInterval(check, 4 * 60 * 60 * 1000).unref();
@@ -46,7 +47,7 @@ export function initUpdater(emit: (u: UpdateState) => void): void {
 }
 
 export function installUpdate(): void {
-  if (process.platform === 'darwin') {
+  if (needsManualUpdate()) {
     void shell.openExternal(RELEASES);
     return;
   }

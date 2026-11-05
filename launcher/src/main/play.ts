@@ -6,6 +6,7 @@ import type { GameState, Progress, ProgressStage, ServerConfig, Settings } from 
 import type { ApiClient } from './api';
 import { sessionExpired, UserError } from './errors';
 import { ensureFiguraServer } from './figura';
+import { assertPlatformSupported } from './platform';
 import { ensureFixPack } from './resourcepack';
 import { ensureAuthlibInjector } from './install/authlib';
 import { ensureJava, ensureMinecraft, ensureNeoForge } from './install/game';
@@ -90,6 +91,7 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
   const manifest = await fetchManifest(process.env.AGEAFTER_MANIFEST_URL || config.packManifestUrl);
   await mkdir(gameDir, { recursive: true });
 
+  assertPlatformSupported();
   const { javaComponent } = await ensureMinecraft(gameDir, step('minecraft', 'Устанавливаем Minecraft'));
   const java = await ensureJava(gameDir, javaComponent, step('java', 'Устанавливаем Java'));
   const versionId = await ensureNeoForge(gameDir, java.java, step('neoforge', 'Устанавливаем NeoForge'), manifest.neoforge, manifest.neoforgeInstaller);

@@ -1,4 +1,4 @@
-# launcher — лаунчер The Age After (Windows и macOS)
+# launcher — лаунчер The Age After (Windows, macOS, Linux)
 
 Electron + TypeScript + React (electron-vite), установка через `@xmcl/installer`, запуск через `@xmcl/core`, установщик — electron-builder (NSIS x64).
 
@@ -54,6 +54,8 @@ npm run dist           # → launcher\release\TheAgeAfter-Setup-<версия>.e
 
 ## Известные ограничения
 
-- **macOS:** к релизу `v<версия>` второй job собирает `TheAgeAfter-<версия>-mac-arm64.dmg` (Apple Silicon) и `-mac-x64.dmg` (Intel). Сборка не подписана и не нотаризована (нет Apple Developer аккаунта): при первом запуске — правый клик по приложению → «Открыть» → «Открыть»; если macOS пишет «повреждено», выполнить `xattr -dr com.apple.quarantine "/Applications/The Age After.app"`. Самообновления на macOS нет (Squirrel.Mac требует подпись): лаунчер показывает баннер «Вышла новая версия» со ссылкой на Releases. Папка игры — `~/Library/Application Support/.theageafter`. Локально: `npm run dist:mac` (только на Mac).
+- **macOS:** к релизу `v<версия>` добавляются `TheAgeAfter-<версия>-mac-arm64.dmg` (Apple Silicon) и `-mac-x64.dmg` (Intel). Сборка не подписана и не нотаризована (нет Apple Developer аккаунта): при первом запуске — правый клик по приложению → «Открыть» → «Открыть»; если macOS пишет «повреждено», выполнить `xattr -dr com.apple.quarantine "/Applications/The Age After.app"`. Самообновления нет (Squirrel.Mac требует подпись): лаунчер показывает баннер «Вышла новая версия» со ссылкой на Releases. Папка игры — `~/Library/Application Support/.theageafter`.
+- **Linux (x86_64):** `TheAgeAfter-<версия>-linux-x64.AppImage` (`chmod +x`, запустить; обновляется сам) и `.deb` (`sudo apt install ./файл.deb`; обновляется вручную, баннер как на macOS). Папка игры — `~/.local/share/.theageafter` (или `$XDG_DATA_HOME`). Нужны обычные библиотеки Minecraft (OpenGL-драйвер, OpenAL). Если нет связки ключей (gnome-keyring/kwallet), токен входа хранится открытым текстом в профиле пользователя. Linux на ARM не поддерживается: у Minecraft 1.21.1 нет под него библиотек, а у Mojang — Java. На Ubuntu 24.04 AppImage запускается без песочницы Chromium (AppArmor её запрещает).
+- Сборка под macOS и Linux идёт только в GitHub Actions (job `installer-unix`); на каждый push job `package-check` упаковывает приложение на ubuntu и macOS. Локально: `npm run dist:linux` (на Linux), `npm run dist:mac` (на Mac).
 - Установщик не подписан: Windows SmartScreen покажет «Неизвестный издатель» → «Подробнее» → «Выполнить в любом случае».
 - Облачные аватары Figura работают только через наше облако ([`figura/`](../figura/README.md)): официальное проверяет игрока через Mojang. Если на сервере аккаунтов задан `FIGURA_SERVER`, лаунчер прописывает этот адрес в `config/figura.json`.

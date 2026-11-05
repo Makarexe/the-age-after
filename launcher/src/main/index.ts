@@ -2,13 +2,14 @@ import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell, type IpcMainInvokeEvent } from 'electron';
 import { playBlockReason } from '../shared/backstory';
-import { GAME_DIR_NAME, IPC } from '../shared/constants';
+import { IPC } from '../shared/constants';
 import type { GameState, IpcResult, LauncherState, OptionalModInfo, Progress, Settings, UpdateState } from '../shared/types';
 import { ApiClient } from './api';
 import { UserError } from './errors';
 import { clearMarkers } from './install/game';
 import { fetchManifest, optionalFiles, STATE_FILE, type PackManifest } from './install/pack';
 import { initLog, log } from './log';
+import { defaultGameDir } from './platform';
 import { pingServer } from './ping';
 import { FIX_PACK } from './resourcepack';
 import { isGameRunning, play } from './play';
@@ -20,6 +21,9 @@ import { initUpdater, installUpdate } from './updater';
 const MANIFEST_URL_OVERRIDE = process.env.AGEAFTER_MANIFEST_URL;
 
 const DEFAULT_API_ROOT = (import.meta.env.MAIN_VITE_API_ROOT || 'https://the-age-after-production.up.railway.app').replace(/\/+$/, '');
+
+// Ubuntu 24.04+ forbids the Chromium sandbox for AppImages (AppArmor); the window only shows our own UI.
+if (process.platform === 'linux' && process.env.APPIMAGE) app.commandLine.appendSwitch('no-sandbox');
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -69,11 +73,14 @@ function main() {
   initLog(path.join(userData, 'logs'));
   log.info(`The Age After launcher ${app.getVersion()} starting`);
 
-  const settings = new SettingsStore(path.join(userData, 'settings.json'), path.join(app.getPath('appData'), GAME_DIR_NAME));
+  const settings = new SettingsStore(path.join(userData, 'settings.json'), defaultGameDir(process.platform, { appData: app.getPath('appData'), home: app.getPath('home'), xdgDataHome: process.env.XDG_DATA_HOME }));
   const session = new SessionStore(path.join(userData, 'session.json'), {
-    available: () => safeStorage.isEncryptionAvailable(),
-    encrypt: (s) => safeStorage.encryptString(s).toString('base64'),
-    decrypt: (s) => safeStorage.decryptString(Buffer.from(s, 'base64')),
+    // Linux without a keyring (gnome-keyring/kwallet) has no encryption: keep the login token as plain text then
+    // (the file is only readable by the user; the token can be revoked by signing out). Marked, so both kinds load.
+    available: () => true,
+    encrypt: (s) => (safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(s).toString('base64') : `plain:${Buffer.from(s).toString('base64')}`),
+    decrypt: (s) =>
+      s.startsWith('plain:') ? Buffer.from(s.slice(6), 'base64').toString() : safeStorage.decryptString(Buffer.from(s, 'base64')),
   });
   const apiRoot = () => settings.get().apiRoot || DEFAULT_API_ROOT;
   const api = new ApiClient(apiRoot, app.getVersion());

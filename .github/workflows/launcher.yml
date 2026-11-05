@@ -88,18 +88,53 @@ jobs:
         run: |
           tag="v$(node -p "require('./package.json').version")"
           gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" \
-            --title "The Age After $tag" --notes "Лаунчер The Age After $tag. Скачайте TheAgeAfter-Setup-*.exe ниже."
+            --title "The Age After $tag" --notes "Лаунчер The Age After $tag. Windows: TheAgeAfter-Setup-*.exe. macOS: TheAgeAfter-*-mac-arm64.dmg (Apple Silicon) или -mac-x64.dmg (Intel). Linux x64: TheAgeAfter-*-linux-x64.AppImage или .deb."
       - name: Build and publish
         if: env.PUBLISH == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run release
 
-  installer-mac:
-    # Unsigned macOS build (.dmg for Apple Silicon and Intel). Runs after the Windows job, which creates the release.
+  # Every push: the app is packed (not installed) on Linux and macOS, so a broken electron-builder config shows up early.
+  package-check:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    needs: check
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    defaults:
+      run:
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: launcher/package-lock.json
+      - run: npm ci
+      - run: npm run pack:dir
+
+  # Unsigned macOS (.dmg for Apple Silicon and Intel) and Linux (AppImage + deb, x64) builds. They run after the
+  # Windows job, which creates the release.
+  installer-unix:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: installer
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            name: mac
+            files: |
+              launcher/release/*.dmg
+          - os: ubuntu-latest
+            name: linux
+            files: |
+              launcher/release/*.AppImage
+              launcher/release/*.deb
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
     env:
@@ -117,17 +152,17 @@ jobs:
           cache: npm
           cache-dependency-path: launcher/package-lock.json
       - run: npm ci
-      - name: Build dmg
+      - name: Build installers
         if: env.PUBLISH != 'true'
-        run: npm run dist:mac
+        run: npm run dist:${{ matrix.name }}
       - if: env.PUBLISH != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: installer-mac
-          path: launcher/release/*.dmg
+          name: installer-${{ matrix.name }}
+          path: ${{ matrix.files }}
           if-no-files-found: error
       - name: Build and publish
         if: env.PUBLISH == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run release:mac
+        run: npm run release:${{ matrix.name }}

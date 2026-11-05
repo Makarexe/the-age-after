@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { MinecraftFolder, Version } from '@xmcl/core';
 import {
@@ -114,6 +114,27 @@ export function javaPaths(gameDir: string, component: string, platform: NodeJS.P
   };
 }
 
+/**
+ * @xmcl/installer downloads the runtime files but sets no permissions and fakes symlinks with hard links,
+ * so on macOS/Linux `bin/java` isn't executable. Fixed here from the same manifest.
+ */
+export async function applyJavaFileModes(
+  destination: string,
+  files: Record<string, { type: string; executable?: boolean; target?: string }>,
+  platform: NodeJS.Platform = process.platform,
+): Promise<void> {
+  if (platform === 'win32') return;
+  for (const [file, entry] of Object.entries(files)) {
+    const dest = path.join(destination, ...file.split('/'));
+    if (entry.type === 'file' && entry.executable) await chmod(dest, 0o755);
+    else if (entry.type === 'link' && entry.target) {
+      if ((await lstat(dest).catch(() => null))?.isSymbolicLink()) continue;
+      await rm(dest, { force: true });
+      await symlink(entry.target, dest);
+    }
+  }
+}
+
 /** Java from Mojang's java-runtime (the same one the official launcher uses). */
 export async function ensureJava(gameDir: string, component: string, onProgress: StepProgress): Promise<JavaPaths> {
   const paths = javaPaths(gameDir, component);
@@ -123,6 +144,7 @@ export async function ensureJava(gameDir: string, component: string, onProgress:
     const manifest = await retrying('java manifest', () => fetchJavaManifest(component), onProgress);
     const destination = paths.root;
     await retrying('java install', () => runTask(installJavaRuntimeTask({ destination, manifest, dispatcher: downloadAgent() }), onProgress), onProgress);
+    await applyJavaFileModes(destination, manifest.files as Parameters<typeof applyJavaFileModes>[1]);
   } catch (err) {
     log.error('java install failed', err);
     throw new UserError(`Не удалось установить Java: ${describeError(err)}`);
