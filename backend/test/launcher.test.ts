@@ -262,3 +262,22 @@ describe('backstory', () => {
     expect((await t.app.inject({ method: 'PUT', url: `/admin/api/users/${row.id}/backstory`, headers: auth(token), payload: { backstory: 'x' } })).statusCode).toBe(403);
   });
 });
+
+describe('admin Discord ID', () => {
+  it('admin sets, validates and clears it; players cannot', async () => {
+    await createActivePlayer(t, adminToken, 'Discordant');
+    const token = (await authenticate(t.app, 'Discordant')).json().accessToken;
+    const users = (await t.app.inject({ method: 'GET', url: '/admin/api/users', headers: auth(adminToken) })).json();
+    const row = users.find((u: { username: string }) => u.username === 'Discordant');
+    expect(row.discordId).toBeNull();
+    const put = (tk: string, discordId: string) => t.app.inject({ method: 'PUT', url: `/admin/api/users/${row.id}/discord`, headers: auth(tk), payload: { discordId } });
+
+    expect((await put(adminToken, '123456789012345678')).json().discordId).toBe('123456789012345678');
+    expect((await put(adminToken, '12345')).statusCode).toBe(400);
+    expect((await put(adminToken, '12345678901234567a')).statusCode).toBe(400);
+    expect((await put(token, '123456789012345678')).statusCode).toBe(403);
+    expect((await put(adminToken, '')).json().discordId).toBeNull();
+    const me = (await t.app.inject({ method: 'GET', url: '/launcher/me', headers: auth(token) })).json();
+    expect(me.discordId).toBeUndefined();
+  });
+});

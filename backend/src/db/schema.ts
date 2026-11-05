@@ -61,6 +61,8 @@ export const users = pgTable(
     statusReason: text('status_reason'),
     /** Character backstory; written by the player in the launcher, readable and editable by admins. */
     backstory: text('backstory').notNull().default(''),
+    /** Discord user id (snowflake), set by admins only; not unique on purpose. */
+    discordId: text('discord_id'),
     /** Players may join the server only with an approved backstory (admins are exempt). */
     backstoryStatus: backstoryStatus('backstory_status').notNull().default('none'),
     /** Why an admin rejected the backstory; shown to the player. */

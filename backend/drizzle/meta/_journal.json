@@ -29,6 +29,13 @@
       "when": 1792755736963,
       "tag": "0003_backstory_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793880993649,
+      "tag": "0004_discord_id",
+      "breakpoints": true
     }
   ]
 }
