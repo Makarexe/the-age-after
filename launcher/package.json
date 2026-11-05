@@ -1,8 +1,9 @@
 {
   "name": "the-age-after-launcher",
   "productName": "The Age After",
-  "version": "0.1.13",
+  "version": "0.1.15",
   "private": true,
+  "homepage": "https://github.com/Makarexe/the-age-after",
   "description": "Лаунчер модового сервера The Age After",
   "author": "Makarexe",
   "main": "out/main/index.js",
@@ -16,6 +17,11 @@
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
     "test": "vitest run",
     "dist": "electron-vite build && electron-builder --win nsis --x64 --publish never",
+    "dist:mac": "electron-vite build && electron-builder --mac --publish never",
+    "release:mac": "electron-vite build && electron-builder --mac --publish always",
+    "dist:linux": "electron-vite build && electron-builder --linux --publish never",
+    "release:linux": "electron-vite build && electron-builder --linux --publish always",
+    "pack:dir": "electron-vite build && electron-builder --dir --publish never",
     "release": "electron-vite build && electron-builder --win nsis --x64 --publish always"
   },
   "dependencies": {

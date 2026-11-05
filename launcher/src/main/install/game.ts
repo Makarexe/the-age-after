@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { MinecraftFolder, Version } from '@xmcl/core';
 import {
@@ -12,9 +12,10 @@ import type { Task } from '@xmcl/task';
 import { MINECRAFT_VERSION, NEOFORGE_VERSION } from '../../shared/constants';
 import { UserError } from '../errors';
 import { log } from '../log';
+import { downloadFile } from './download';
 import { fetchJavaManifest } from './java-manifest';
 import { withRetries } from './retry';
-import { assetHosts, describeError, downloadAgent, libraryUrls } from './net';
+import { assetHosts, BMCLAPI, describeError, downloadAgent, libraryUrls } from './net';
 
 export type StepProgress = (fraction: number | null, detail?: string) => void;
 
@@ -101,13 +102,37 @@ export interface JavaPaths {
   javaw: string;
 }
 
-export function javaPaths(gameDir: string, component: string): JavaPaths {
-  const home = path.join(gameDir, 'runtime', component);
-  const win = process.platform === 'win32';
+export function javaPaths(gameDir: string, component: string, platform: NodeJS.Platform = process.platform): JavaPaths & { root: string } {
+  const root = path.join(gameDir, 'runtime', component);
+  // Mojang's macOS runtime is a bundle: the files start at jre.bundle/Contents/Home.
+  const home = platform === 'darwin' ? path.join(root, 'jre.bundle', 'Contents', 'Home') : root;
+  const win = platform === 'win32';
   return {
+    root,
     java: path.join(home, 'bin', win ? 'java.exe' : 'java'),
     javaw: path.join(home, 'bin', win ? 'javaw.exe' : 'java'),
   };
+}
+
+/**
+ * @xmcl/installer downloads the runtime files but sets no permissions and fakes symlinks with hard links,
+ * so on macOS/Linux `bin/java` isn't executable. Fixed here from the same manifest.
+ */
+export async function applyJavaFileModes(
+  destination: string,
+  files: Record<string, { type: string; executable?: boolean; target?: string }>,
+  platform: NodeJS.Platform = process.platform,
+): Promise<void> {
+  if (platform === 'win32') return;
+  for (const [file, entry] of Object.entries(files)) {
+    const dest = path.join(destination, ...file.split('/'));
+    if (entry.type === 'file' && entry.executable) await chmod(dest, 0o755);
+    else if (entry.type === 'link' && entry.target) {
+      if ((await lstat(dest).catch(() => null))?.isSymbolicLink()) continue;
+      await rm(dest, { force: true });
+      await symlink(entry.target, dest);
+    }
+  }
 }
 
 /** Java from Mojang's java-runtime (the same one the official launcher uses). */
@@ -117,8 +142,9 @@ export async function ensureJava(gameDir: string, component: string, onProgress:
   onProgress(null, 'Список файлов Java');
   try {
     const manifest = await retrying('java manifest', () => fetchJavaManifest(component), onProgress);
-    const destination = path.dirname(path.dirname(paths.java));
+    const destination = paths.root;
     await retrying('java install', () => runTask(installJavaRuntimeTask({ destination, manifest, dispatcher: downloadAgent() }), onProgress), onProgress);
+    await applyJavaFileModes(destination, manifest.files as Parameters<typeof applyJavaFileModes>[1]);
   } catch (err) {
     log.error('java install failed', err);
     throw new UserError(`Не удалось установить Java: ${describeError(err)}`);
@@ -134,12 +160,23 @@ export async function ensureNeoForge(
   java: string,
   onProgress: StepProgress,
   version: string = NEOFORGE_VERSION,
+  installer?: { url: string; sha1: string },
 ): Promise<string> {
   const folder = MinecraftFolder.from(gameDir);
   // The marker stores the version id the installer produced.
   const installedId = await readFile(path.join(gameDir, MARKERS_DIR, 'neoforge'), 'utf8').catch(() => '');
   const [markerVersion, markerId] = installedId.split('|');
   if (markerVersion === version && markerId && existsSync(folder.getVersionJson(markerId))) return markerId;
+  if (installer) {
+    // The installer jar is the one file xmcl can't re-verify; get it ourselves (our copy first, then the
+    // official maven and the mirror, all checked against the same sha1). xmcl then finds a valid file and skips it.
+    const rel = `net/neoforged/neoforge/${version}/neoforge-${version}-installer.jar`;
+    await downloadFile({
+      url: [installer.url, `https://maven.neoforged.net/releases/${rel}`, `${BMCLAPI}/maven/${rel}`],
+      dest: folder.getLibraryByPath(rel),
+      hash: { algorithm: 'sha1', value: installer.sha1 },
+    }).catch((err) => log.warn('neoforge installer pre-download failed, xmcl will try', err));
+  }
   let id: string;
   try {
     id = await retrying(

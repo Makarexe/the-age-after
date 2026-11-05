@@ -101,7 +101,9 @@ export type UpdateState =
   | { state: 'none' }
   | { state: 'available'; version: string }
   | { state: 'downloading'; percent: number }
-  | { state: 'ready'; version: string };
+  | { state: 'ready'; version: string }
+  /** macOS: the build is unsigned, so it can't update itself; the player downloads the new version. */
+  | { state: 'manual'; version: string };
 
 /** What the preload exposes as `window.launcher`. All methods throw Error with a user-facing message. */
 export interface LauncherApi {
