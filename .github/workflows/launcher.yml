@@ -123,6 +123,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: installer
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest

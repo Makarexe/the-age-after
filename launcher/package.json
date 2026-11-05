@@ -3,6 +3,7 @@
   "productName": "The Age After",
   "version": "0.1.15",
   "private": true,
+  "homepage": "https://github.com/Makarexe/the-age-after",
   "description": "Лаунчер модового сервера The Age After",
   "author": "Makarexe",
   "main": "out/main/index.js",
