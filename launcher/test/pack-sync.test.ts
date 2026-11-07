@@ -134,30 +134,50 @@ describe('syncPack against tools/pack output', () => {
     expect(validateManifest(ok).neoforgeInstaller?.url).toBe('https://x/i.jar');
   });
 
+  it('refuses a config patch without https or a sha1', async () => {
+    const manifest = await publish('2026.10.09-1');
+    const bad = { ...JSON.parse(JSON.stringify(manifest)), overridesPatch: { url: 'http://x/p.zip', sha1: 'zz', size: 1 } };
+    expect(() => validateManifest(bad)).toThrow(/конфиг/);
+  });
+
   it('refuses an optional mod that requires an unknown id', async () => {
     const manifest = await publish('2026.10.09-1');
     manifest.optionalMods = [{ id: 'a', name: 'A', description: '', requires: ['zzz'], files: [] }];
     expect(() => validateManifest(JSON.parse(JSON.stringify(manifest)))).toThrow(/zzz/);
   });
 
-  it('selective configs: an existing install gets only the listed files, a fresh one gets all', async () => {
-    await syncPack({ gameDir, manifest: await publish('2026.10.09-1'), fetchImpl: fakeFetch });
+  it('selective configs: only the chosen files reach anyone; the full archive stays untouched', async () => {
+    const first = await publish('2026.10.09-1');
+    await syncPack({ gameDir, manifest: first, fetchImpl: fakeFetch });
     await writeFile(path.join(gameDir, 'config', 'sub', 'b.json'), 'player edited b');
     await writeFile(path.join(gameDir, 'config', 'a.toml'), 'player edited a');
 
     await writeFile(path.join(instance, 'config', 'a.toml'), 'a=2');
     await writeFile(path.join(instance, 'config', 'sub', 'b.json'), '{"b":2}');
-    const partial = await publish('2026.10.09-2', undefined, ['config/a.toml']);
-    expect(partial.overrides?.only).toEqual(['config/a.toml']);
+    const partial = await publish('2026.10.09-2', first.overrides, ['config/a.toml']);
+    expect(partial.overrides).toEqual(first.overrides);
+    expect(partial.overridesPatch?.url).toBe(`${RELEASE}/config-patch.zip`);
+
+    // A launcher that doesn't know overridesPatch sees the same config.zip: it changes nothing.
+    const { overridesPatch: _ignored, ...oldView } = partial;
+    expect((await syncPack({ gameDir, manifest: oldView, fetchImpl: fakeFetch })).overridesApplied).toBe(false);
+    expect(await readFile(path.join(gameDir, 'config', 'a.toml'), 'utf8')).toBe('player edited a');
 
     const result = await syncPack({ gameDir, manifest: partial, fetchImpl: fakeFetch });
     expect(result.overridesApplied).toBe(true);
     expect(await readFile(path.join(gameDir, 'config', 'a.toml'), 'utf8')).toBe('a=2');
     expect(await readFile(path.join(gameDir, 'config', 'sub', 'b.json'), 'utf8')).toBe('player edited b');
 
+    // Applied once: the player's later edit stays.
+    await writeFile(path.join(gameDir, 'config', 'a.toml'), 'a=mine');
+    expect((await syncPack({ gameDir, manifest: partial, fetchImpl: fakeFetch })).overridesApplied).toBe(false);
+    expect(await readFile(path.join(gameDir, 'config', 'a.toml'), 'utf8')).toBe('a=mine');
+
+    // A fresh install gets the published archive, then the patch on top.
     const fresh = path.join(root, 'fresh');
     await syncPack({ gameDir: fresh, manifest: partial, fetchImpl: fakeFetch });
-    expect(await readFile(path.join(fresh, 'config', 'sub', 'b.json'), 'utf8')).toBe('{"b":2}');
+    expect(await readFile(path.join(fresh, 'config', 'a.toml'), 'utf8')).toBe('a=2');
+    expect(await readFile(path.join(fresh, 'config', 'sub', 'b.json'), 'utf8')).toBe('{"b":1}');
   });
 
   it('pack update: replaces changed mods, removes extras, keeps the player options.txt', async () => {

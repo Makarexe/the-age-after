@@ -30,6 +30,8 @@ export interface PackManifest {
   files: PackFile[];
   /** `only`: globs; an existing install gets just these files from config.zip, a fresh one gets everything. */
   overrides: { url: string; sha1: string; size: number; only?: string[] } | null;
+  /** A few chosen config files, published on top of `overrides` (`--configs`); applied once per sha1. */
+  overridesPatch?: { url: string; sha1: string; size: number };
   managedDirs: string[];
   firstInstallOnly: string[];
   optionalMods: OptionalMod[];
@@ -56,6 +58,7 @@ interface CachedFile {
 export interface PackState {
   packVersion?: string;
   overridesSha1?: string;
+  patchSha1?: string;
   files: Record<string, CachedFile>;
 }
 
@@ -87,6 +90,10 @@ export function validateManifest(data: unknown): PackManifest {
   }
   if (m.overrides?.only !== undefined && (!Array.isArray(m.overrides.only) || m.overrides.only.some((g) => typeof g !== 'string' || !g))) {
     throw new UserError('Манифест сборки содержит неверный список конфигов.');
+  }
+  const op = m.overridesPatch;
+  if (op && (!/^https:\/\//.test(op.url) || !/^[0-9a-f]{40}$/i.test(op.sha1))) {
+    throw new UserError('Манифест сборки содержит неверный архив конфигов.');
   }
   const ni = m.neoforgeInstaller;
   if (ni && (!/^https:\/\//.test(ni.url) || !/^[0-9a-f]{40}$/i.test(ni.sha1))) {
@@ -273,6 +280,20 @@ export async function syncPack(opts: SyncOptions): Promise<SyncResult> {
     await extractOverrides(tmp, gameDir, manifest.firstInstallOnly, only);
     await rm(path.dirname(tmp), { recursive: true, force: true });
     state.overridesSha1 = o.sha1;
+    overridesApplied = true;
+  }
+
+  // 5. The selective config patch goes after the full archive, once per patch (a repair re-applies it).
+  const patch = manifest.overridesPatch;
+  if (patch && (opts.forceOverrides || state.patchSha1 !== patch.sha1)) {
+    onProgress?.('config', null, 'config-patch.zip');
+    const tmp = path.join(gameDir, '.launcher-tmp', 'config-patch.zip');
+    await downloadFile({ url: patch.url, dest: tmp, hash: { algorithm: 'sha1', value: patch.sha1 }, fetchImpl }).catch((err) => {
+      throw new UserError(`Не удалось скачать обновление настроек (config-patch.zip): ${err instanceof Error ? err.message : err}`);
+    });
+    await extractOverrides(tmp, gameDir, manifest.firstInstallOnly);
+    await rm(path.dirname(tmp), { recursive: true, force: true });
+    state.patchSha1 = patch.sha1;
     overridesApplied = true;
   }
 
