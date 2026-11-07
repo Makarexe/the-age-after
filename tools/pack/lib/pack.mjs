@@ -94,7 +94,7 @@ export async function readInstance(instanceDir) {
  * `keepOverrides`: the `overrides` of the published manifest, to keep configs untouched (--mods-only).
  * @returns {{ manifest: object, uploads: {name: string, data: Buffer}[], serverMods: string[], warnings: string[] }}
  */
-export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, packVersion, keepOverrides, optionalMods = [], onlyConfigs }) {
+export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, packVersion, keepOverrides, optionalMods = [], onlyConfigs, keepOverridesPatch }) {
   const warnings = [];
   const instance = await readInstance(instanceDir);
   const minecraft = config.minecraft;
@@ -164,8 +164,11 @@ export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, pa
   }
 
   // Configs and other overrides go into one zip, unless the published one is kept as is (--mods-only).
+  // With onlyConfigs (--configs) the published config.zip is kept too, and only the chosen files go into a
+  // separate small zip (overridesPatch): old launchers ignore it, so nothing else can reach them.
+  if (onlyConfigs?.length && keepOverrides === undefined) throw new Error('--configs: нужна опубликованная сборка (keepOverrides).');
   const zipEntries = [];
-  if (keepOverrides !== undefined) config = { ...config, overrideDirs: [], overrideFiles: [] };
+  if (keepOverrides !== undefined && !onlyConfigs?.length) config = { ...config, overrideDirs: [], overrideFiles: [] };
   for (const dir of config.overrideDirs ?? []) {
     const full = path.join(instanceDir, dir);
     if (!(await exists(full))) continue;
@@ -181,17 +184,23 @@ export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, pa
   }
   zipEntries.sort((a, b) => a.name.localeCompare(b.name));
   let overrides = keepOverrides ?? null;
-  if (keepOverrides === undefined && zipEntries.length > 0) {
+  let overridesPatch = keepOverridesPatch ?? null;
+  let patchFiles = [];
+  if (onlyConfigs?.length) {
+    const matched = zipEntries.filter((e) => matchesAny(e.name, onlyConfigs));
+    if (!matched.length) throw new Error(`--configs: ни один файл не подошёл под ${onlyConfigs.join(', ')}`);
+    const zip = createZip(matched);
+    uploads.push({ name: 'config-patch.zip', data: zip });
+    overridesPatch = { url: `${releaseBaseUrl}/config-patch.zip`, sha1: sha1(zip), size: zip.length, files: matched.length };
+    patchFiles = matched.map((e) => e.name);
+    if (overrides) {
+      const { only: _legacy, ...rest } = overrides;
+      overrides = rest;
+    }
+  } else if (keepOverrides === undefined && zipEntries.length > 0) {
     const zip = createZip(zipEntries);
     uploads.push({ name: 'config.zip', data: zip });
     overrides = { url: `${releaseBaseUrl}/config.zip`, sha1: sha1(zip), size: zip.length, files: zipEntries.length };
-    if (onlyConfigs?.length) {
-      // Players who already have the pack get just these files; new installs get the whole zip.
-      const matched = zipEntries.filter((e) => matchesAny(e.name, onlyConfigs));
-      if (!matched.length) throw new Error(`--configs: ни один файл не подошёл под ${onlyConfigs.join(', ')}`);
-      overrides.only = onlyConfigs;
-      warnings.push(`Выборочные конфиги: у текущих игроков заменятся ${matched.length} файл(ов) из ${zipEntries.length}.`);
-    }
   }
 
   // Optional mods are downloaded by the launcher only when the player ticks them, so their jars must not
@@ -218,8 +227,9 @@ export async function buildPack({ instanceDir, config, sides, releaseBaseUrl, pa
     managedDirs: config.managedDirs ?? ['mods'],
     firstInstallOnly: config.firstInstallOnly ?? [],
     optionalMods,
+    ...(overridesPatch ? { overridesPatch } : {}),
   };
-  return { manifest, uploads, serverMods, warnings };
+  return { manifest, uploads, serverMods, warnings, patchFiles };
 }
 
 /** Human-readable changes between two manifests (by path). */

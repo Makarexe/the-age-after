@@ -167,13 +167,19 @@ describe('buildPack', () => {
     );
   });
 
-  it('--configs marks which files existing players get and rejects a pattern that matches nothing', async () => {
-    const base = { instanceDir: dir, config, sides: {}, releaseBaseUrl: RELEASE, packVersion: 'x' };
+  it('--configs keeps the published config.zip and puts only the chosen files into a patch', async () => {
+    const published = { url: `${RELEASE}/config.zip`, sha1: 'a'.repeat(40), size: 10, files: 3, only: ['legacy'] };
+    const base = { instanceDir: dir, config, sides: {}, releaseBaseUrl: RELEASE, packVersion: 'x', keepOverrides: published };
     const sel = await buildPack({ ...base, onlyConfigs: ['config/jei/**'] });
-    assert.deepEqual(sel.manifest.overrides.only, ['config/jei/**']);
-    assert.ok(sel.warnings.some((w) => w.includes('Выборочные')));
-    assert.equal(sel.manifest.overrides.sha1, result.manifest.overrides.sha1);
+    assert.deepEqual(sel.manifest.overrides, { url: published.url, sha1: published.sha1, size: 10, files: 3 });
+    assert.deepEqual(sel.patchFiles, ['config/jei/jei-client.toml']);
+    assert.deepEqual(Object.keys(readZip(sel.uploads.find((u) => u.name === 'config-patch.zip').data)), ['config/jei/jei-client.toml']);
+    assert.ok(!sel.uploads.some((u) => u.name === 'config.zip'));
+    assert.equal(sel.manifest.overridesPatch.files, 1);
     await assert.rejects(buildPack({ ...base, onlyConfigs: ['config/nope/**'] }), /ни один файл/);
+    await assert.rejects(buildPack({ ...base, keepOverrides: undefined, onlyConfigs: ['config/jei/**'] }), /опубликованная/);
+    const kept = await buildPack({ ...base, keepOverridesPatch: sel.manifest.overridesPatch });
+    assert.deepEqual(kept.manifest.overridesPatch, sel.manifest.overridesPatch);
   });
 
   it('is deterministic', async () => {

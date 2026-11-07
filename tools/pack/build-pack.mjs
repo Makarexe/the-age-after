@@ -33,7 +33,7 @@ if (args.help || !(args.instance ?? process.env.PACK_INSTANCE)) {
   --instance    папка с minecraftinstance.json (или переменная PACK_INSTANCE)
   --upload      загрузить в GitHub Release через gh (нужен gh auth login)
   --mods-only   обновить только моды: конфиги (config.zip) остаются как в опубликованной сборке
-  --configs     только эти конфиги заменятся у текущих игроков (глобы через запятую, например "config/analogaudio/**")
+  --configs     выложить только эти конфиги (глобы через запятую, например "config/analogaudio/**"): в архив-патч попадают ТОЛЬКО они, остальное не трогается
   --check-urls  проверить, что все ссылки CurseForge отвечают
   --out         куда сложить файлы (по умолчанию tools/pack/out)`);
   process.exit(args.help ? 0 : 1);
@@ -63,9 +63,13 @@ if (args.configs && args['mods-only']) {
   process.exit(1);
 }
 const onlyConfigs = args.configs?.split(',').map((s) => s.trim()).filter(Boolean);
+if (onlyConfigs?.length && !previous) {
+  console.error('--configs: не удалось получить опубликованную сборку. Опубликуйте сборку целиком (без --configs).');
+  process.exit(1);
+}
 
 const packVersion = args.version ?? nextPackVersion(previous?.packVersion);
-const { manifest, uploads, serverMods, warnings } = await buildPack({
+const { manifest, uploads, serverMods, warnings, patchFiles } = await buildPack({
   instanceDir,
   config,
   sides,
@@ -73,7 +77,8 @@ const { manifest, uploads, serverMods, warnings } = await buildPack({
   packVersion,
   optionalMods,
   onlyConfigs,
-  keepOverrides: args['mods-only'] ? (previous.overrides ?? null) : undefined,
+  keepOverrides: args['mods-only'] || onlyConfigs?.length ? (previous.overrides ?? null) : undefined,
+  keepOverridesPatch: args['mods-only'] ? previous.overridesPatch : undefined,
 });
 
 // Our own copy of the NeoForge installer next to the manifest: the official maven is unreachable for some players.
@@ -121,6 +126,10 @@ const total = manifest.files.reduce((n, f) => n + f.size, 0) + (manifest.overrid
 console.log(`\nСборка ${packVersion}: ${manifest.files.length} файлов, ${mb(total)} МБ всего.`);
 console.log(`В Release: ${uploads.length} файлов (${mb(uploads.reduce((n, u) => n + u.data.length, 0))} МБ).`);
 if (args['mods-only']) console.log('Конфиги не трогаем: остаётся опубликованный config.zip.');
+else if (onlyConfigs?.length) {
+  console.log(`Выборочные конфиги: config.zip остаётся опубликованным, игрокам уйдёт config-patch.zip (${patchFiles.length} файл(ов)):`);
+  for (const f of patchFiles) console.log(`  → ${f}`);
+}
 else if (manifest.overrides) console.log(`config.zip: ${manifest.overrides.files} файлов.`);
 
 const diff = diffManifests(previous, manifest);
