@@ -9,7 +9,7 @@ import { parse } from '../lib/validate.js';
 import { approvedMail } from '../services/mails.js';
 import { verifyPassword } from '../services/passwords.js';
 import { sendSafely } from '../services/registration.js';
-import { findSession, issueAccessToken, revokeAllTokens, revokeToken } from '../services/tokens.js';
+import { createEmailToken, findSession, issueAccessToken, revokeAllTokens, revokeToken } from '../services/tokens.js';
 import { findUserById, findUserByLogin } from '../services/users.js';
 import { adminPage } from './admin-page.js';
 import { backstorySchema } from './launcher.js';
@@ -162,6 +162,16 @@ export function adminRoutes(ctx: AppContext): FastifyPluginAsync {
       const [updated] = await db.update(users).set({ discordId }).where(eq(users.id, target.id)).returning();
       await audit(admin.id, 'discord_edit', target, { discordId });
       return userRow(updated!);
+    });
+
+    // For a player who can't get the reset mail: the admin passes the link on by hand. The password stays unknown to the admin.
+    app.post('/admin/api/users/:id/reset-link', async (req) => {
+      const { user: admin } = await requireAdmin(req);
+      const target = await findUserById(db, (req.params as { id: string }).id);
+      if (!target) throw notFound('Пользователь не найден.');
+      const token = await createEmailToken(db, target.id, 'reset');
+      await audit(admin.id, 'reset_link', target);
+      return { url: `${config.publicUrl}/reset?token=${token}` };
     });
 
     app.post('/admin/api/users/:id/backstory-review', async (req) => {

@@ -281,3 +281,21 @@ describe('admin Discord ID', () => {
     expect(me.discordId).toBeUndefined();
   });
 });
+
+describe('admin password reset link', () => {
+  it('admin gets a one-time link that sets a new password; players cannot', async () => {
+    await createActivePlayer(t, adminToken, 'Forgetful');
+    const token = (await authenticate(t.app, 'Forgetful')).json().accessToken;
+    const row = (await t.app.inject({ method: 'GET', url: '/admin/api/users', headers: auth(adminToken) })).json().find((u: { username: string }) => u.username === 'Forgetful');
+    expect((await t.app.inject({ method: 'POST', url: `/admin/api/users/${row.id}/reset-link`, headers: auth(token) })).statusCode).toBe(403);
+
+    const res = await t.app.inject({ method: 'POST', url: `/admin/api/users/${row.id}/reset-link`, headers: auth(adminToken) });
+    const url = new URL(res.json().url);
+    expect(url.pathname).toBe('/reset');
+    const reset = await t.app.inject({ method: 'POST', url: '/launcher/reset-password', payload: { token: url.searchParams.get('token'), password: 'brand-new-pass1' } });
+    expect(reset.statusCode).toBe(204);
+    expect((await authenticate(t.app, 'Forgetful', 'brand-new-pass1')).statusCode).toBe(200);
+    const again = await t.app.inject({ method: 'POST', url: '/launcher/reset-password', payload: { token: url.searchParams.get('token'), password: 'another-pass12' } });
+    expect(again.statusCode).toBe(400);
+  });
+});
