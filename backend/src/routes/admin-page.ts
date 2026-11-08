@@ -43,7 +43,7 @@ h3{margin:0 0 12px}.scroll{overflow-x:auto}.pre{white-space:pre-wrap}
   const STATUS = {pending_email:'ждёт почту',pending_approval:'ждёт одобрения',active:'активен',rejected:'отклонён',banned:'забанен'};
   const BS = {none:'квента: нет',pending:'квента: на рассмотрении',approved:'квента: одобрена',rejected:'квента: отклонена'};
   const ACTION = {approve:'Одобрить',reject:'Отклонить',ban:'Бан',unban:'Разбан',delete:'Удалить'};
-  const AUDIT = {approve:'одобрил',reject:'отклонил',ban:'забанил',unban:'разбанил',delete:'удалил',news_create:'добавил новость',news_delete:'удалил новость',backstory_edit:'изменил квенту',backstory_approve:'одобрил квенту',backstory_reject:'отклонил квенту',discord_edit:'изменил Discord ID'};
+  const AUDIT = {approve:'одобрил',reject:'отклонил',ban:'забанил',unban:'разбанил',delete:'удалил',news_create:'добавил новость',news_delete:'удалил новость',backstory_edit:'изменил квенту',backstory_approve:'одобрил квенту',backstory_reject:'отклонил квенту',discord_edit:'изменил Discord ID',reset_link:'создал ссылку сброса пароля'};
   const ALLOWED = {approve:['pending_email','pending_approval','rejected'],reject:['pending_email','pending_approval'],ban:['pending_email','pending_approval','active','rejected'],unban:['banned'],delete:['pending_email','pending_approval','rejected']};
   let token = sessionStorage.getItem('adminToken');
   let tab = 'pending';
@@ -102,11 +102,12 @@ h3{margin:0 0 12px}.scroll{overflow-x:auto}.pre{white-space:pre-wrap}
       const save = el('button', { class: 'a p', textContent: 'Сохранить квенту', onclick: async () => { try { u.backstory = (await api('PUT', '/users/' + u.id + '/backstory', { backstory: ta.value })).backstory; alert('Сохранено.'); } catch (err) { alert(err.message); } } });
       const dc = el('input', { value: u.discordId || '', placeholder: 'Discord ID (17–20 цифр)', maxLength: 20, inputMode: 'numeric' });
       const dcSave = el('button', { class: 'a', textContent: 'Сохранить Discord ID', onclick: async () => { try { u.discordId = (await api('PUT', '/users/' + u.id + '/discord', { discordId: dc.value })).discordId; alert('Сохранено.'); render(); } catch (err) { alert(err.message); } } });
+      const resetBtn = el('button', { class: 'a', textContent: 'Ссылка для сброса пароля', onclick: async () => { try { const { url } = await api('POST', '/users/' + u.id + '/reset-link'); try { await navigator.clipboard.writeText(url); } catch {} prompt('Ссылка для ' + u.username + ' (действует 1 час, скопирована). Отправьте её игроку:', url); } catch (err) { alert(err.message); } } });
       const pics = el('div', {}); let loaded = false;
       const rev = u.backstoryStatus === 'none' ? null : el('div', { class: 'acts' },
         el('button', { class: 'a p', textContent: 'Одобрить квенту', disabled: u.backstoryStatus === 'approved', onclick: () => review(u, 'approve') }),
         el('button', { class: 'a d', textContent: 'Отклонить квенту', onclick: () => review(u, 'reject') }));
-      const detail = el('tr', { hidden: true }, el('td', { colSpan: 4 }, el('div', { class: 'muted', textContent: 'Квента ' + u.username + ' — ' + BS[u.backstoryStatus] + (u.backstoryReview ? ' (' + u.backstoryReview + ')' : '') }), ta, save, el('div', { class: 'muted', textContent: 'Discord ID' }), dc, dcSave, pics, rev));
+      const detail = el('tr', { hidden: true }, el('td', { colSpan: 4 }, el('div', { class: 'muted', textContent: 'Квента ' + u.username + ' — ' + BS[u.backstoryStatus] + (u.backstoryReview ? ' (' + u.backstoryReview + ')' : '') }), ta, save, el('div', { class: 'muted', textContent: 'Discord ID' }), dc, dcSave, el('div', {}, resetBtn), pics, rev));
       const toggle = el('button', { class: 'a', textContent: u.backstory ? 'Квента' : 'Квента (пусто)', onclick: () => { detail.hidden = !detail.hidden; if (!detail.hidden && !loaded) { loaded = true; for (const id of u.images) thumb(id).then((i) => pics.append(i)); } } });
       const main = el('tr', {},
         el('td', {}, el('div', { textContent: u.username + (u.isAdmin ? ' ★' : '') }), el('div', { class: 'muted', textContent: u.email }), u.discordId ? el('div', { class: 'muted', textContent: 'Discord: ' + u.discordId }) : null),
