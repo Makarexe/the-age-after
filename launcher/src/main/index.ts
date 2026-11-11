@@ -132,6 +132,7 @@ function main() {
     setSkinModel: (model: 'classic' | 'slim') => authed((t) => api.setSkinModel(t, model)),
     resetSkin: () => authed((t) => api.resetSkin(t)),
     saveBackstory: (backstory: string) => authed((t) => api.saveBackstory(t, String(backstory))),
+    saveDiscordId: (discordId: string) => authed((t) => api.saveDiscordId(t, String(discordId))),
     addBackstoryImage: (data: string) => authed((t) => api.addBackstoryImage(t, String(data))),
     deleteBackstoryImage: (id: number) => authed((t) => api.deleteBackstoryImage(t, Number(id))),
     getNews: () => api.news(),

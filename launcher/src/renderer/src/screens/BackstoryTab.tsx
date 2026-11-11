@@ -55,6 +55,7 @@ export function BackstoryTab({ me, onMe, onError }: { me: Me | null; onMe: (m: M
       setError(errorText(err));
     }
   };
+  const [discord, setDiscord] = useState(me?.discordId ?? '');
   const images = me?.backstoryImages ?? [];
 
   return (
@@ -81,6 +82,21 @@ export function BackstoryTab({ me, onMe, onError }: { me: Me | null; onMe: (m: M
       {message && <p className="ok-text">{message}</p>}
       <button className="btn btn-primary" disabled={busy || !me || text === me.backstory} onClick={() => void save()}>
         Сохранить
+      </button>
+
+      <h3>Discord</h3>
+      <p className="muted">Ваш Discord ID (17–20 цифр): так администраторы смогут с вами связаться. Найти: Discord → Настройки → Расширенные → «Режим разработчика», затем правый клик по себе → «Копировать ID пользователя».</p>
+      <input
+        className="backstory"
+        inputMode="numeric"
+        maxLength={20}
+        value={discord}
+        onChange={(e) => setDiscord(e.target.value.trim())}
+        placeholder="123456789012345678"
+        disabled={!me}
+      />
+      <button className="btn" disabled={busy || !me || discord === (me.discordId ?? '')} onClick={() => void run(() => api.saveDiscordId(discord), 'Discord ID сохранён.')}>
+        Сохранить Discord ID
       </button>
 
       <h3>Изображения</h3>

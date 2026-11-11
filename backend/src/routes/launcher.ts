@@ -41,6 +41,9 @@ const skinBody = z.object({
   model: z.enum(['classic', 'slim']).default('classic'),
 });
 
+// Empty clears the field; otherwise a Discord snowflake (17-20 digits).
+export const discordSchema = z.object({ discordId: z.string().trim().regex(/^(\d{17,20})?$/, 'Discord ID — 17–20 цифр.') });
+
 export const backstorySchema = z.object({
   backstory: z.string({ error: 'Нет текста квенты.' }).max(10000, 'Квента слишком длинная (до 10 000 символов).'),
 });
@@ -55,6 +58,7 @@ export function meResponse(user: User, publicUrl: string, images: { id: number; 
     skin: user.skinSha256 ? { url: textureUrl(publicUrl, user.skinSha256), model: user.skinModel } : null,
     createdAt: user.createdAt.toISOString(),
     backstory: user.backstory,
+    discordId: user.discordId,
     backstoryStatus: user.backstoryStatus,
     backstoryReview: user.backstoryReview,
     backstoryImages: images,
@@ -195,6 +199,13 @@ export function launcherRoutes(ctx: AppContext): FastifyPluginAsync {
       if (backstory === session.user.backstory) return meFull(session.user);
       const [user] = await db.update(users).set({ backstory }).where(eq(users.id, session.user.id)).returning();
       return meFull(await resubmit(db, user!));
+    });
+
+    app.put('/discord', async (req) => {
+      const session = await requireSession(req);
+      const discordId = parse(discordSchema, req.body).discordId || null;
+      const [user] = await db.update(users).set({ discordId }).where(eq(users.id, session.user.id)).returning();
+      return meFull(user!);
     });
 
     // Base64 in JSON: 2 MB of image is ~2.7 MB of text, above the app-wide body limit.
