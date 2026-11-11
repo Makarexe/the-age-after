@@ -14,6 +14,7 @@ export interface Me {
   skin: { url: string; model: 'classic' | 'slim' } | null;
   createdAt: string;
   backstory: string;
+  discordId: string | null;
   backstoryStatus: 'none' | 'pending' | 'approved' | 'rejected';
   backstoryReview: string | null;
   backstoryImages: { id: number; size: number }[];
@@ -119,6 +120,7 @@ export interface LauncherApi {
   setSkinModel(model: 'classic' | 'slim'): Promise<Me>;
   resetSkin(): Promise<Me>;
   saveBackstory(backstory: string): Promise<Me>;
+  saveDiscordId(discordId: string): Promise<Me>;
   addBackstoryImage(base64: string): Promise<Me>;
   deleteBackstoryImage(id: number): Promise<Me>;
   getNews(): Promise<NewsItem[]>;

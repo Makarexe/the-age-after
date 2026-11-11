@@ -122,6 +122,10 @@ export class ApiClient {
     return this.request<Me>('PUT', '/launcher/backstory', { token, body: { backstory } });
   }
 
+  saveDiscordId(token: string, discordId: string) {
+    return this.request<Me>('PUT', '/launcher/discord', { token, body: { discordId } });
+  }
+
   addBackstoryImage(token: string, data: string) {
     return this.request<Me>('POST', '/launcher/backstory/images', { token, body: { data } });
   }

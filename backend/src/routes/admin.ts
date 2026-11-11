@@ -12,7 +12,7 @@ import { sendSafely } from '../services/registration.js';
 import { createEmailToken, findSession, issueAccessToken, revokeAllTokens, revokeToken } from '../services/tokens.js';
 import { findUserById, findUserByLogin } from '../services/users.js';
 import { adminPage } from './admin-page.js';
-import { backstorySchema } from './launcher.js';
+import { backstorySchema, discordSchema } from './launcher.js';
 
 const loginBody = z.object({ login: z.string().trim().min(1).max(254), password: z.string().min(1).max(256) });
 const actionBody = z.object({ reason: z.string().trim().max(500).optional() });
@@ -21,8 +21,6 @@ const newsBody = z.object({
   body: z.string().trim().min(1, 'Нужен текст.').max(5000, 'Текст слишком длинный.'),
 });
 
-// Empty clears the field; otherwise a Discord snowflake (17-20 digits).
-const discordBody = z.object({ discordId: z.string().trim().regex(/^(\d{17,20})?$/, 'Discord ID — 17–20 цифр.') });
 const reviewBody = z.object({ decision: z.enum(['approve', 'reject']), reason: z.string().trim().max(500).optional() });
 
 type Action = 'approve' | 'reject' | 'ban' | 'unban' | 'delete';
@@ -158,7 +156,7 @@ export function adminRoutes(ctx: AppContext): FastifyPluginAsync {
       const { user: admin } = await requireAdmin(req);
       const target = await findUserById(db, (req.params as { id: string }).id);
       if (!target) throw notFound('Пользователь не найден.');
-      const discordId = parse(discordBody, req.body).discordId || null;
+      const discordId = parse(discordSchema, req.body).discordId || null;
       const [updated] = await db.update(users).set({ discordId }).where(eq(users.id, target.id)).returning();
       await audit(admin.id, 'discord_edit', target, { discordId });
       return userRow(updated!);

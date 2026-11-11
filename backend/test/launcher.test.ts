@@ -278,7 +278,7 @@ describe('admin Discord ID', () => {
     expect((await put(token, '123456789012345678')).statusCode).toBe(403);
     expect((await put(adminToken, '')).json().discordId).toBeNull();
     const me = (await t.app.inject({ method: 'GET', url: '/launcher/me', headers: auth(token) })).json();
-    expect(me.discordId).toBeUndefined();
+    expect(me.discordId).toBeNull(); // the player sees their own value (null after the admin cleared it)
   });
 });
 
