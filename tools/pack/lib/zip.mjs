@@ -1,5 +1,5 @@
 // Minimal ZIP writer (deflate, UTF-8 names, no zip64): enough for a pack of config files.
-import { crc32, deflateRawSync } from 'node:zlib';
+import { crc32, deflateRawSync, inflateRawSync } from 'node:zlib';
 
 function dosDateTime(date) {
   const time = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
@@ -63,4 +63,29 @@ export function createZip(entries) {
   end.writeUInt32LE(centralSize, 12);
   end.writeUInt32LE(offset, 16);
   return Buffer.concat([...locals, ...centrals, end]);
+}
+
+/** Reads one entry of a zip (stored or deflated, no zip64) by name; null if missing. */
+export function readZipEntry(zip, wanted) {
+  let end = zip.length - 22;
+  while (end >= 0 && zip.readUInt32LE(end) !== 0x06054b50) end--;
+  if (end < 0) throw new Error('не zip: нет конца каталога');
+  const count = zip.readUInt16LE(end + 10);
+  let p = zip.readUInt32LE(end + 16);
+  for (let i = 0; i < count; i++) {
+    const method = zip.readUInt16LE(p + 10);
+    const size = zip.readUInt32LE(p + 20);
+    const nameLen = zip.readUInt16LE(p + 28);
+    const extraLen = zip.readUInt16LE(p + 30);
+    const commentLen = zip.readUInt16LE(p + 32);
+    const local = zip.readUInt32LE(p + 42);
+    const name = zip.toString('utf8', p + 46, p + 46 + nameLen);
+    if (name === wanted) {
+      const start = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28);
+      const body = zip.subarray(start, start + size);
+      return method === 8 ? inflateRawSync(body) : Buffer.from(body);
+    }
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return null;
 }

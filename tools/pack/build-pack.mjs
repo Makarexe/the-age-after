@@ -9,6 +9,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { buildNeoForgeLibrariesZip } from './lib/neoforge-libs.mjs';
 import { buildPack, diffManifests, nextPackVersion, sha1 } from './lib/pack.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -91,6 +92,17 @@ if (previous?.neoforgeInstaller?.url.endsWith(`/${installerName}`)) {
   const data = Buffer.from(await res.arrayBuffer());
   uploads.push({ name: installerName, data });
   manifest.neoforgeInstaller = { url: `${releaseBaseUrl}/${installerName}`, sha1: sha1(data), size: data.length };
+}
+
+// The same for the libraries NeoForge's installer downloads from maven.neoforged.net.
+const librariesName = `neoforge-libraries-${config.neoforge}.zip`;
+if (previous?.neoforgeLibraries?.url.endsWith(`/${librariesName}`)) {
+  manifest.neoforgeLibraries = previous.neoforgeLibraries;
+} else {
+  const installer = uploads.find((u) => u.name === installerName)?.data ?? Buffer.from(await (await fetch(`https://maven.neoforged.net/releases/net/neoforged/neoforge/${config.neoforge}/${installerName}`)).arrayBuffer());
+  const { zip, files } = await buildNeoForgeLibrariesZip(installer);
+  uploads.push({ name: librariesName, data: zip });
+  manifest.neoforgeLibraries = { url: `${releaseBaseUrl}/${librariesName}`, sha1: sha1(zip), size: zip.length, files };
 }
 
 if (args['check-urls']) {
