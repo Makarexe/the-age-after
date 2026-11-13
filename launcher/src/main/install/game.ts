@@ -14,6 +14,7 @@ import { UserError } from '../errors';
 import { log } from '../log';
 import { downloadFile } from './download';
 import { fetchJavaManifest } from './java-manifest';
+import { extractOverrides } from './pack';
 import { withRetries } from './retry';
 import { assetHosts, BMCLAPI, describeError, downloadAgent, libraryUrls } from './net';
 
@@ -154,6 +155,38 @@ export async function ensureJava(gameDir: string, component: string, onProgress:
   return paths;
 }
 
+/**
+ * The libraries NeoForge's installer takes from maven.neoforged.net come as one zip from our release (some players
+ * can't reach that host). Unpacked into libraries/ before the install, which then finds valid files and skips them.
+ * Any failure is only logged: the normal download (official maven, then the mirror) still follows.
+ */
+export async function ensureNeoForgeLibraries(
+  gameDir: string,
+  libs: { url: string; sha1: string },
+  onProgress: StepProgress,
+  fetchImpl?: typeof fetch,
+): Promise<void> {
+  if (await hasMarker(gameDir, 'neoforge-libraries', libs.sha1)) return;
+  const tmp = path.join(gameDir, '.launcher-tmp', 'neoforge-libraries.zip');
+  try {
+    onProgress(null, 'Библиотеки NeoForge (наш сервер)');
+    await downloadFile({ url: libs.url, dest: tmp, hash: { algorithm: 'sha1', value: libs.sha1 }, fetchImpl, onBytes: () => onProgress(null) });
+    await extractOverrides(tmp, gameDir, []);
+    await setMarker(gameDir, 'neoforge-libraries', libs.sha1);
+  } catch (err) {
+    log.warn('neoforge libraries archive failed, falling back to maven', err);
+  } finally {
+    await rm(path.dirname(tmp), { recursive: true, force: true });
+  }
+}
+
+/** Added to the install error when the hosts look blocked or return broken files. */
+export function neoForgeNetworkHint(message: string): string {
+  return /ETIMEDOUT|ECONNRESET|ENOTFOUND|ECONNREFUSED|checksum|sha1/i.test(message)
+    ? '\n\nПохоже, нет доступа к серверам NeoForge (maven.neoforged.net). Включите VPN на время установки и нажмите «Играть» ещё раз: после установки он не нужен.'
+    : '';
+}
+
 /** `version`: the pack's NeoForge (manifest.neoforge), so a NeoForge update needs no launcher release. */
 export async function ensureNeoForge(
   gameDir: string,
@@ -161,12 +194,14 @@ export async function ensureNeoForge(
   onProgress: StepProgress,
   version: string = NEOFORGE_VERSION,
   installer?: { url: string; sha1: string },
+  libraries?: { url: string; sha1: string },
 ): Promise<string> {
   const folder = MinecraftFolder.from(gameDir);
   // The marker stores the version id the installer produced.
   const installedId = await readFile(path.join(gameDir, MARKERS_DIR, 'neoforge'), 'utf8').catch(() => '');
   const [markerVersion, markerId] = installedId.split('|');
   if (markerVersion === version && markerId && existsSync(folder.getVersionJson(markerId))) return markerId;
+  if (libraries) await ensureNeoForgeLibraries(gameDir, libraries, onProgress);
   if (installer) {
     // The installer jar is the one file xmcl can't re-verify; get it ourselves (our copy first, then the
     // official maven and the mirror, all checked against the same sha1). xmcl then finds a valid file and skips it.
@@ -191,7 +226,8 @@ export async function ensureNeoForge(
     );
   } catch (err) {
     log.error('neoforge install failed', err);
-    throw new UserError(`Не удалось установить NeoForge ${version}: ${describeError(err)}`);
+    const reason = describeError(err);
+    throw new UserError(`Не удалось установить NeoForge ${version}: ${reason}${neoForgeNetworkHint(reason)}`);
   }
   await setMarker(gameDir, 'neoforge', `${version}|${id}`);
   return id;

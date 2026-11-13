@@ -1,7 +1,7 @@
 {
   "name": "the-age-after-launcher",
   "productName": "The Age After",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "private": true,
   "homepage": "https://github.com/Makarexe/the-age-after",
   "description": "Лаунчер модового сервера The Age After",

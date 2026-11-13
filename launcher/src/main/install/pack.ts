@@ -37,6 +37,8 @@ export interface PackManifest {
   optionalMods: OptionalMod[];
   /** Our copy of the NeoForge installer (GitHub Release): maven.neoforged.net is unreachable for some players. */
   neoforgeInstaller?: { url: string; sha1: string; size: number };
+  /** Our zip of the libraries NeoForge's installer takes from maven.neoforged.net (libraries/…). */
+  neoforgeLibraries?: { url: string; sha1: string; size: number; files: number };
 }
 
 /** CurseForge serves the same files from both hosts; when one answers 404, the other often has the file. */
@@ -98,6 +100,10 @@ export function validateManifest(data: unknown): PackManifest {
   const ni = m.neoforgeInstaller;
   if (ni && (!/^https:\/\//.test(ni.url) || !/^[0-9a-f]{40}$/i.test(ni.sha1))) {
     throw new UserError('Манифест сборки содержит неверный установщик NeoForge.');
+  }
+  const nl = m.neoforgeLibraries;
+  if (nl && (!/^https:\/\//.test(nl.url) || !/^[0-9a-f]{40}$/i.test(nl.sha1))) {
+    throw new UserError('Манифест сборки содержит неверный архив библиотек NeoForge.');
   }
   // Absent in manifests published before optional mods existed.
   const optionalMods = m.optionalMods ?? [];
