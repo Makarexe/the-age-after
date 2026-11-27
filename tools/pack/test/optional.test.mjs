@@ -18,7 +18,7 @@ describe('optional-mods.json', () => {
         assert.match(f.path, /^mods\/[^/\\]+\.jar$/);
         assert.match(f.sha1, /^[0-9a-f]{40}$/);
         assert.ok(f.size > 0);
-        assert.match(f.url, /^https:\/\/cdn\.modrinth\.com\//);
+        assert.match(f.url, /^https:\/\/(cdn\.modrinth\.com|edge\.forgecdn\.net)\//);
       }
     }
   });

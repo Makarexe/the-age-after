@@ -5,6 +5,7 @@ import { createMinecraftProcessWatcher, launch } from '@xmcl/core';
 import type { GameState, Progress, ProgressStage, ServerConfig, Settings } from '../shared/types';
 import type { ApiClient } from './api';
 import { sessionExpired, UserError } from './errors';
+import { ensureDistantHorizonsRendering } from './distant-horizons';
 import { ensureFiguraServer } from './figura';
 import { assertPlatformSupported } from './platform';
 import { ensureFixPack } from './resourcepack';
@@ -123,6 +124,10 @@ async function prepareAndLaunch(deps: PlayDeps): Promise<void> {
   }
   // After syncPack too: options.txt (first install) may have just been written.
   await ensureFixPack(gameDir, deps.fixPackPath).catch((err) => log.warn('could not enable the blockstates fix pack', err));
+  if (settings.optionalMods.includes('distanthorizons')) {
+    // After syncPack too: the pack's config.zip ships the renderer switched off for everyone else.
+    await ensureDistantHorizonsRendering(gameDir).catch((err) => log.warn('could not enable Distant Horizons rendering', err));
+  }
   if (config.figuraServer) {
     // After syncPack: the pack's config.zip may have just reset Figura's settings.
     await ensureFiguraServer(gameDir, config.figuraServer).catch((err) => log.warn('could not update figura.json', err));

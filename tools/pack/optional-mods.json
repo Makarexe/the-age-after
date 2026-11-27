@@ -1,5 +1,5 @@
 {
-  "$comment": "Опциональные моды: игрок включает их галочками в лаунчере, на вход на сервер они не влияют. Только клиентские моды NeoForge 1.21.1. Ссылки, sha1 и размеры взяты из Modrinth API и сверены со скачанными jar. library:true — не показывается игроку, ставится вместе с модом, которому нужна (requires).",
+  "$comment": "Опциональные моды: игрок включает их галочками в лаунчере, на вход на сервер они не влияют. Только клиентские моды NeoForge 1.21.1. Ссылки, sha1 и размеры взяты из Modrinth API и сверены со скачанными jar; файлы с CurseForge (edge.forgecdn.net) — sha1 посчитаны по скачанным jar, размер сверен с cfwidget. library:true — не показывается игроку, ставится вместе с модом, которому нужна (requires).",
   "mods": [
     {
       "id": "forgematica",
@@ -52,6 +52,31 @@
           "sha1": "444c6f221e57cca8e433702b18c4643faa82545a",
           "size": 623257,
           "url": "https://cdn.modrinth.com/data/nrikgvxm/versions/RxfaR4ud/particlerain-4.0.2%2B1.21.1-neoforge.jar"
+        }
+      ]
+    },
+    {
+      "id": "distanthorizons",
+      "name": "Distant Horizons",
+      "description": "Дальняя прорисовка: упрощённый мир далеко за пределами обычной дальности, подгружается с сервера. Вместе с ним ставятся DH Turbo и исправление утечки памяти. Нужно больше видеопамяти и ОЗУ.",
+      "files": [
+        {
+          "path": "mods/DistantHorizons-3.3.3-1.21.1-fabric-neoforge.jar",
+          "sha1": "4357b4d19fab818780c94f0e43dad1cc931634b2",
+          "size": 28289212,
+          "url": "https://cdn.modrinth.com/data/uCdwusMi/versions/9w34y8ai/DistantHorizons-3.3.3-1.21.1-fabric-neoforge.jar"
+        },
+        {
+          "path": "mods/dhturbo-neoforge-1.21.1-1.6.0.jar",
+          "sha1": "f556b5497262e9d78b161493c295c28285680da2",
+          "size": 453677,
+          "url": "https://edge.forgecdn.net/files/9483/698/dhturbo-neoforge-1.21.1-1.6.0.jar"
+        },
+        {
+          "path": "mods/distant_horizons_memory_fix-0.1.1.jar",
+          "sha1": "d1a7d97ba3d98b236035c7a36d7b44652b7f51c1",
+          "size": 15692,
+          "url": "https://edge.forgecdn.net/files/9638/366/distant_horizons_memory_fix-0.1.1.jar"
         }
       ]
     },
